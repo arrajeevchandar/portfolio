@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rajeev Chandar | Full-Stack Developer",
+  title: "A R Rajeev Chandar | Full-Stack Developer",
   description: "A R Rajeev Chandar — full-stack developer, Adobe intern, and MCA student at CHRIST University. Explore projects in AI, mobile, and decentralized applications.",
   other: {
     "codex-preview": "development",
