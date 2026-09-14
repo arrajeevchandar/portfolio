@@ -49,8 +49,23 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       ringPositions.set([radius * Math.cos(u), radius * Math.sin(u), Math.sin(v) * 0.22], i * 3);
       ringNormals.set([Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)], i * 3);
     }
-    knotGeometry.morphAttributes.position = [new THREE.BufferAttribute(ringPositions, 3)];
-    knotGeometry.morphAttributes.normal = [new THREE.BufferAttribute(ringNormals, 3)];
+    const framePositions = new Float32Array(sourcePositions.count * 3);
+    const frameNormals = new Float32Array(sourcePositions.count * 3);
+    const framePoint = (u: number) => {
+      const c = Math.cos(u), s = Math.sin(u);
+      return new THREE.Vector3(3.2 * Math.sign(c) * Math.pow(Math.abs(c), 0.35), 2 * Math.sign(s) * Math.pow(Math.abs(s), 0.35), 0);
+    };
+    for (let i = 0; i < sourcePositions.count; i++) {
+      const u = uv.getX(i) * Math.PI * 2, v = uv.getY(i) * Math.PI * 2;
+      const center = framePoint(u);
+      const tangent = framePoint(u + 0.001).sub(framePoint(u - 0.001)).normalize();
+      const normal = new THREE.Vector3(tangent.y, -tangent.x, 0).multiplyScalar(Math.cos(v));
+      normal.z = Math.sin(v);
+      framePositions.set(center.addScaledVector(normal, 0.085).toArray(), i * 3);
+      frameNormals.set(normal.toArray(), i * 3);
+    }
+    knotGeometry.morphAttributes.position = [new THREE.BufferAttribute(ringPositions, 3), new THREE.BufferAttribute(framePositions, 3)];
+    knotGeometry.morphAttributes.normal = [new THREE.BufferAttribute(ringNormals, 3), new THREE.BufferAttribute(frameNormals, 3)];
     const knot = new THREE.Mesh(knotGeometry, chrome); sculpture.add(knot);
     const systemNodes = Array.from({ length: 4 }, () => {
       const node = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 1), acid);
@@ -62,6 +77,37 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
+    // The ring becomes a product window. Two interface layers part as the
+    // camera enters the experience, connecting the sculpture to Solenne.
+    const interfaceScene = new THREE.Group(); scene.add(interfaceScene);
+    const screen = document.createElement("canvas"); screen.width = 1200; screen.height = 740;
+    const g = screen.getContext("2d")!;
+    g.fillStyle = "#1b1e22"; g.fillRect(0, 0, 1200, 740);
+    g.strokeStyle = "#41464d"; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, 82); g.lineTo(1200, 82); g.stroke();
+    g.fillStyle = "#eeeae3"; g.font = "32px Georgia"; g.fillText("solenne ✳", 55, 53);
+    g.fillStyle = "#929aa5"; g.font = "16px monospace"; g.fillText("YOUR PRIVATE SPACE", 865, 49);
+    g.fillStyle = "#a4a9b2"; g.font = "17px monospace"; g.fillText("A MOMENT TO YOURSELF", 62, 155);
+    g.fillStyle = "#f0f0ed"; g.font = "52px Arial"; g.fillText("Some things are", 60, 239); g.fillText("better said.", 60, 302);
+    g.fillStyle = "#9ba2ad"; g.font = "23px Arial"; g.fillText("A little space. A clearer mind.", 62, 358);
+    g.strokeStyle = "#383d46"; g.strokeRect(62, 422, 449, 155);
+    g.fillStyle = "#c3b9df"; g.font = "18px monospace"; g.fillText("VIDEO JOURNAL", 90, 463);
+    g.fillStyle = "#d5d6dc"; g.font = "25px Arial"; g.fillText("Start with a real moment.", 90, 520);
+    g.strokeStyle = "#454453"; g.lineWidth = 2;
+    [72, 95, 122].forEach(r => { g.beginPath(); g.arc(881, 305, r, 0, Math.PI * 2); g.stroke(); });
+    g.fillStyle = "#c0b3de"; g.beginPath(); g.roundRect(868, 275, 26, 48, 13); g.fill();
+    g.strokeStyle = "#c0b3de"; g.beginPath(); g.arc(881, 307, 27, 0, Math.PI); g.moveTo(881, 334); g.lineTo(881, 350); g.stroke();
+    for(let i = 0; i < 65; i++){ const h = 10 + Math.abs(Math.sin(i * 1.7) * Math.sin(i * .21)) * 70; g.fillStyle = i % 3 ? "#7e7c91" : "#c6bddb"; g.fillRect(661+i*7, 485-h/2, 3, h); }
+    g.fillStyle = "#9fa4ad"; g.font = "17px monospace"; g.fillText("VOICE  /  SPEECH  /  VISUAL", 690, 576);
+    g.strokeStyle = "#353a42"; g.beginPath(); g.moveTo(62, 649); g.lineTo(1138, 649); g.stroke();
+    g.fillStyle = "#8f949e"; g.font = "16px monospace"; g.fillText("PRIVATE VIDEO JOURNALING", 62, 697); g.fillText("01 / UNDERSTAND", 933, 697);
+    const interfaceTextures: THREE.Texture[] = [];
+    const interfaceLayers = [-1, 1].map((side, i) => {
+      const texture = new THREE.CanvasTexture(screen); texture.colorSpace = THREE.SRGBColorSpace;
+      texture.repeat.x = .5; texture.offset.x = i * .5; interfaceTextures.push(texture);
+      const layer = new THREE.Mesh(new THREE.PlaneGeometry(3.08, 3.8), new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true}));
+      layer.position.set(side * 1.54, 0, -.12); interfaceScene.add(layer); return layer;
+    });
     // The same instanced geometry becomes a signal field, classroom network,
     // distributed ledger, and training waveform as the story progresses.
     const count = innerWidth < 800 ? 240 : 520;
@@ -115,31 +161,48 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       acid.emissive.copy(acid.color).multiplyScalar(0.18);
       const entrance = s.reduced || s.paused ? 1 : 1 - Math.pow(1 - Math.min(time / 1.8, 1), 3);
       const unfold = THREE.MathUtils.smoothstep(openingProgress, 0.18, 0.72);
+      const gateway = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingProgress, 0.76, 1);
+      const flight = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingExit, 0, 0.98);
+      const inPassage = gateway > 0 && openingExit < 1.05;
+      container.style.zIndex = inPassage ? "4" : "0";
+      interfaceScene.visible = inPassage;
+      interfaceScene.position.set(mobile ? 0 : 3.25, 0.1, 0);
+      interfaceScene.scale.setScalar(mobile ? .63 : .88);
+      const separate = THREE.MathUtils.smoothstep(flight, .04, .62);
+      interfaceLayers.forEach((layer, i) => {
+        const side = i ? 1 : -1;
+        layer.material.opacity = THREE.MathUtils.smoothstep(gateway, .45, 1);
+        layer.position.set(side * (1.54 + separate * 3.8), separate * (i ? -.3 : .3), -.12 - separate * (i ? 1.8 : .8));
+        layer.rotation.y = -side * separate * .58;
+      });
       const turn = Math.sin(time * 0.18) * 0.18;
-      sculpture.visible = openingExit < 1.35;
+      sculpture.visible = openingExit < (gateway ? 1.05 : 1.35);
       sculpture.scale.setScalar(mobile ? 0.63 : 0.88);
       sculpture.rotation.set(
-        THREE.MathUtils.lerp(0.35 + turn + s.pointer.y * 0.15, 0.12, unfold),
-        THREE.MathUtils.lerp(0.5 + turn + s.pointer.x * 0.2 + (1 - entrance) * 0.7, -0.18, unfold),
+        THREE.MathUtils.lerp(0.35 + turn + s.pointer.y * 0.15, 0.12 * (1 - gateway), unfold),
+        THREE.MathUtils.lerp(0.5 + turn + s.pointer.x * 0.2 + (1 - entrance) * 0.7, -0.18 * (1 - gateway), unfold),
         THREE.MathUtils.lerp(-0.3, 0, unfold)
       );
       // Exit with the opening's sticky viewport, like the typography, without
       // a scale-to-zero or opacity handoff when the chapter changes.
       const viewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(19)) * (mobile ? 17 : 13);
-      sculpture.position.set(mobile ? 0 : 3.25, (mobile ? -0.8 - unfold * 0.7 : 0.1) + openingExit * viewHeight - (1 - entrance) * 0.5, 0);
-      knot.morphTargetInfluences![0] = unfold;
+      sculpture.position.set(mobile ? 0 : 3.25, THREE.MathUtils.lerp(mobile ? -0.8 - unfold * 0.7 : 0.1, 0.1, gateway) + openingExit * viewHeight * (1 - gateway) - (1 - entrance) * 0.5, 0);
+      knot.morphTargetInfluences![0] = unfold * (1 - gateway);
+      knot.morphTargetInfluences![1] = gateway;
       knot.scale.setScalar(1);
       systemNodes.forEach((node, i) => {
         const a = i * Math.PI / 2 + Math.PI / 4;
         node.position.set(Math.cos(a) * 2.15, Math.sin(a) * 2.15, 0.24);
-        node.scale.setScalar(THREE.MathUtils.smoothstep(unfold, 0.65, 1));
+        node.scale.setScalar(THREE.MathUtils.smoothstep(unfold, 0.65, 1) * (1 - gateway));
       });
       arcs.forEach((arc, i) => {
+        arc.visible = gateway < 0.99;
+        arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
         arc.rotation.set(i * 0.53 * (1 - unfold), i * 0.31 * (1 - unfold), a + time * 0.025 + explosion);
       });
-      blocks.visible = chapter > 0.9 && s.chapter < 6;
+      blocks.visible = s.chapter >= 2 && s.chapter < 6 && !inPassage;
       const mode = Math.round(chapter);
       const cloudScale = Math.min(Math.max(chapter - 0.9, 0), 1);
       const right = mobile ? 0 : 1.9;
@@ -182,9 +245,13 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       lines.visible = nodeVisibility; lineGeometry.attributes.position.needsUpdate = true;
       camera.position.x += ((s.reduced ? 0 : s.pointer.x * 0.35) - camera.position.x) * ease;
       camera.position.y += ((s.reduced ? 0 : -s.pointer.y * 0.25) - camera.position.y) * ease;
-      camera.position.z = mobile ? 17 : 13;
-      camera.lookAt(0, 0, 0);
-      world.rotation.z = Math.sin(time * 0.12) * 0.035;
+      const travel = inPassage ? flight : 0;
+      const align = inPassage ? gateway : 0;
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, mobile ? 0 : 3.25, align);
+      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.1, align);
+      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, -5, travel);
+      camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
+      world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1 - align);
       renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(tick);
@@ -193,7 +260,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
       const materials = new Set<THREE.Material>(); const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.geometry) geometries.add(mesh.geometry); if (mesh.material) (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(m => materials.add(m)); });
-      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
+      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); interfaceTextures.forEach(texture => texture.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
     };
   }, [state]);
   return <div ref={host} className="world" aria-hidden="true"><div className="world-fallback">RC<span>FULL-STACK / HUMAN-CENTERED</span></div></div>;

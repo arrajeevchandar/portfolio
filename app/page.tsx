@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { projects, type Project } from "@/components/portfolio/content";
 import { SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo } from "@/components/portfolio/demos";
 import type { SceneState } from "@/components/portfolio/world";
+import Mindset from "@/components/portfolio/mindset";
 
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
@@ -23,7 +24,24 @@ const resetMagnet = (event: PointerEvent<HTMLElement>) => { event.currentTarget.
 
 function ProjectStory({ project, index, step, onStep, onDetails }: { project: Project; index: number; step: number; onStep: (step: number) => void; onDetails: () => void }) {
   const Demo = demos[index];
-  return <section id={project.id} className={`project-story project-${project.id}`} data-chapter={index + 2} style={{ "--project-color": project.color } as CSSProperties} aria-labelledby={`${project.id}-title`}>
+  const projectHost = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = projectHost.current;
+    if (!el) return;
+    const composition = el.querySelector<HTMLElement>(".project-composition")!;
+    const copy = el.querySelector<HTMLElement>(".project-copy")!;
+    const demo = el.querySelector<HTMLElement>(".project-demo")!;
+    const fit = () => {
+      const available = composition.clientHeight;
+      const natural = Math.max(copy.offsetHeight, demo.offsetHeight);
+      el.style.setProperty("--project-fit", String(Math.min(1, available / Math.max(1, natural))));
+    };
+    const observer = new ResizeObserver(fit);
+    [composition, copy, demo].forEach(item => observer.observe(item));
+    fit();
+    return () => observer.disconnect();
+  }, []);
+  return <section ref={projectHost} id={project.id} className={`project-story project-${project.id}`} data-chapter={index + 2} style={{ "--project-color": project.color } as CSSProperties} aria-labelledby={`${project.id}-title`}>
     <div className="project-sticky">
       <div className="project-atmosphere" />
       <div className="project-watermark" aria-hidden="true">{project.name}</div>
@@ -55,11 +73,20 @@ export default function Home() {
       const updateChapter = (element: HTMLElement, progress: number) => {
         progress = Math.max(0, Math.min(1, -element.getBoundingClientRect().top / Math.max(1, element.offsetHeight - innerHeight)));
         const c = Number(element.dataset.chapter); scene.current.chapter = c; scene.current.progress = progress; setChapter(c);
-        if (c >= 2 && c <= 5) { const step = Math.min(2, Math.floor(progress * 3)); setSteps(previous => previous[c - 2] === step ? previous : previous.map((value, i) => i === c - 2 ? step : value)); }
       };
       all.forEach(element => {
         ScrollTrigger.create({ trigger: element, start: "top center", end: "bottom center", onEnter: self => updateChapter(element, self.progress), onEnterBack: self => updateChapter(element, self.progress) });
         ScrollTrigger.create({ trigger: element, start: "top top", end: "bottom bottom", onUpdate: self => { if (self.isActive) updateChapter(element, self.progress); element.style.setProperty("--chapter-progress", String(self.progress)); } });
+      });
+      // Each project owns its story progress, independently of the global chapter rail.
+      // Keep the final stage on screen for a full third of the pinned scroll distance.
+      if (!paused && !reduced) gsap.utils.toArray<HTMLElement>(".project-story").forEach((project, index) => {
+        const syncStep = (progress: number) => {
+          if (innerWidth <= 800) return;
+          const next = Math.min(2, Math.floor(progress * 3));
+          setSteps(previous => previous[index] === next ? previous : previous.map((value, i) => i === index ? next : value));
+        };
+        ScrollTrigger.create({ trigger: project, start: "top top", end: "bottom bottom", onUpdate: self => syncStep(self.progress), onRefresh: self => syncStep(self.progress) });
       });
       const syncOpening = () => {
         const opening = el.querySelector<HTMLElement>(".opening");
@@ -76,16 +103,15 @@ export default function Home() {
           .fromTo(".hero-side, .hero-description, .hero-meta, .sculpture-controls", { y: 0, opacity: 1 }, { y: -30, opacity: 0, duration: 0.2 }, 0.02)
           .fromTo(".opening-next", { y: 45, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: "power2.out" }, 0.38)
           .fromTo(".system-caption", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.16 }, 0.68)
+          .to(".opening-next, .system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
           .to({}, { duration: 0.16 }, 0.84);
-        gsap.fromTo(".manifesto-word", { color: "#343933" }, { color: "#eef0e6", stagger: 0.13, ease: "none", scrollTrigger: { trigger: ".mindset", start: "top 40%", end: "bottom 75%", scrub: 0.5 } });
-        gsap.fromTo(".identity-card", { y: 100, rotation: (_, target) => Number(target.dataset.tilt) * 2 }, { y: -40, rotation: (_, target) => Number(target.dataset.tilt), stagger: 0.06, scrollTrigger: { trigger: ".mindset", start: "top bottom", end: "bottom top", scrub: 1 } });
         gsap.utils.toArray<HTMLElement>(".project-story").forEach(project => {
           gsap.fromTo(project.querySelector(".demo-rig"), { rotateY: -12, rotateZ: -3, y: 45 }, { rotateY: 9, rotateZ: 2, y: -22, ease: "none", scrollTrigger: { trigger: project, start: "top top", end: "bottom bottom", scrub: 1 } });
           gsap.fromTo(project.querySelector(".project-watermark"), { xPercent: 8 }, { xPercent: -20, ease: "none", scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
           gsap.fromTo(project.querySelector(".project-atmosphere"), { scale: 0.7, opacity: 0.3 }, { scale: 1.5, opacity: 0.7, scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
         });
         gsap.fromTo(".journey-track", { x: 0 }, { x: () => -Math.max(0, (el.querySelector(".journey-track")?.scrollWidth ?? 0) - innerWidth * 0.88), ease: "none", scrollTrigger: { trigger: ".journey", start: "top top", end: "bottom bottom", scrub: 0.8, invalidateOnRefresh: true } });
-        gsap.utils.toArray<HTMLElement>(".reveal").forEach(item => gsap.fromTo(item, { y: 45, opacity: 0.35 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: item, start: "top 92%", toggleActions: "play none none reverse" } }));
+        gsap.utils.toArray<HTMLElement>(".reveal:not(.index-heading)").forEach(item => gsap.fromTo(item, { y: 45, opacity: 0.35 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: item, start: "top 92%", toggleActions: "play none none reverse" } }));
         gsap.fromTo(".contact-big", { xPercent: -5 }, { xPercent: 0, scrollTrigger: { trigger: ".contact", start: "top bottom", end: "bottom bottom", scrub: 1 } });
       }
     }, el);
@@ -122,7 +148,7 @@ export default function Home() {
         <div className="hero-scroll"><span>SCROLL TO ENTER THE STORY</span><i><ArrowDown size={14}/></i></div>
       </div>
     </section>
-    <section id="about" className="mindset section-space" data-chapter="1"><div className="section-eyebrow"><span>01 / THE MINDSET</span><span>MORE THAN AN INTERFACE</span></div><div className="mindset-layout"><div className="mindset-statement"><p>{"Good software starts with understanding people. Then connecting every detail that makes it work.".split(" ").map((word, i) => <span className="manifesto-word" key={i}>{word} </span>)}</p><div className="about-description"><span className="micro">A R RAJEEV CHANDAR</span><p>I’m a full-stack developer and MCA student at CHRIST University. I work across interfaces, application logic, and data—bringing the same curiosity to a mobile classroom, an AI pipeline, or a decentralized application.</p><p>My Adobe internship strengthened that approach: learn the system, understand its constraints, then build something useful.</p></div></div><div className="identity-collage"><div className="identity-card identity-one" data-tilt="-8"><span className="micro">EXPERIENCE</span><strong>Adobe</strong><span>TECHNICAL CONSULTANT INTERN</span><div className="identity-bottom">EDGE DELIVERY SERVICES<ArrowUpRight size={20}/></div></div><div className="identity-card identity-two" data-tilt="7"><span className="micro">ACADEMIC FOUNDATION</span><strong>9.23<span>/10</span></strong><span>BCA · JAIN UNIVERSITY · 2025</span><div className="identity-bottom">ACADEMIC EXCELLENCE<Plus size={20}/></div></div><div className="identity-card identity-three" data-tilt="-3"><span className="micro">THE NEXT CHAPTER</span><strong>MCA<span>’27</span></strong><span>CHRIST UNIVERSITY · BENGALURU</span><div className="identity-bottom">CONTINUOUSLY EXPLORING<ArrowUpRight size={20}/></div></div></div></div></section>
+    <Mindset staticMotion={paused || reduced}/>
     <section id="work" className="work-index section-space"><div className="section-eyebrow"><span>02 / SELECTED SYSTEMS</span><span>FOUR CHALLENGES. FOUR WORLDS.</span></div><div className="index-heading reveal"><h2>BUILT TO<br/><em>DO SOMETHING.</em></h2><p>From private reflection to connected classrooms.<br/>Explore the idea, then get inside the engineering.</p></div><div className="project-index-list">{projects.map((project, i) => <a className="index-item" href={`#${project.id}`} key={project.id} style={{ "--project-color": project.color } as CSSProperties}><span>{project.number}</span><strong>{project.name}</strong><span className="index-subtitle">{project.short}</span><span className="index-category">{project.category}</span><ArrowUpRight/><span className="index-hover-word" aria-hidden="true">{i === 0 ? "REFLECT" : i === 1 ? "CONNECT" : i === 2 ? "VERIFY" : "PERSONALIZE"}</span></a>)}</div></section>
     <div className="project-worlds">{projects.map((project, i) => <ProjectStory key={project.id} project={project} index={i} step={steps[i]} onStep={step => jumpStep(i, step)} onDetails={() => setDetail(i)}/>)}</div>
     <section id="experience" className="journey" data-chapter="6"><div className="journey-sticky"><div className="section-eyebrow"><span>03 / ALWAYS IN PROGRESS</span><span>THE JOURNEY SO FAR</span></div><div className="journey-heading"><h2>KEEP LEARNING.<br/><em>KEEP BUILDING.</em></h2><p>Each chapter adds another<br/>way of looking at a problem.</p></div><div className="journey-track">{[

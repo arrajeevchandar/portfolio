@@ -1,0 +1,23 @@
+/* The viewport is a fixed stage; only the outer story supplies scroll distance. */
+@media(min-width:801px){
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-story{height:420svh}
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-sticky{position:sticky;top:0;height:100svh;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:22px;padding:95px 7% 68px}
+  .project-composition{height:100%;min-height:0;margin:0;align-items:center;grid-template-rows:minmax(0,1fr)}
+  .project-copy{scale:var(--project-fit,1);transform-origin:left center;padding-top:0}
+  .project-demo{scale:var(--project-fit,1);transform-origin:right center;height:auto;align-self:center;padding:0}
+  .project-demo .demo-rig{scale:.8;transform-origin:center}
+  .project-demo .demo-caption{position:relative;bottom:auto;margin-top:-25px}
+  .project-bottomline{position:relative;inset:auto;margin:0;min-height:44px}
+  .project-copy h2{font-size:clamp(48px,4.6vw,78px)}
+  .project-intro{font-size:16px;line-height:1.65}
+  .story-copy{min-height:180px}
+  .story-copy p{font-size:15px;line-height:1.65}
+  .project-copy>.underlined-link{margin-top:18px}
+  .motion-paused .project-copy,.reduced-motion .project-copy,.motion-paused .project-demo,.reduced-motion .project-demo{scale:1}
+}
+@media(min-width:801px) and (max-height:700px){
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-sticky{padding-top:85px;padding-bottom:58px;gap:14px}
+  .project-copy h2{font-size:48px}
+  .project-intro{margin-top:15px}
+  .story-copy{min-height:160px;margin-top:16px;padding-top:16px}
+}
