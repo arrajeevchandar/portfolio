@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowDown } from "lucide-react";
 import { SolenneDemo, CortexDemo } from "./demos";
+import type { SceneState } from "./world";
 
 const beats = [
   { word: "Understand the person.", lead: "THE STARTING POINT", label: "Understand", text: "Good software begins with a human need. A quiet space to reflect. A simpler way to check in. A document someone can trust.", note: "Solenne explores the first of those ideas through private video journaling." },
@@ -12,7 +13,7 @@ const beats = [
   { word: "Let the work speak.", lead: "THE RESULT", label: "Build", text: "Four projects. Different constraints. The same attention to how the pieces fit together.", note: "Explore the experience, then look closer at the decisions behind it." },
 ];
 
-export default function Mindset({ staticMotion }: { staticMotion: boolean }) {
+export default function Mindset({ staticMotion, scene }: { staticMotion: boolean; scene: RefObject<SceneState> }) {
   const host = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   useEffect(() => {
@@ -38,11 +39,13 @@ export default function Mindset({ staticMotion }: { staticMotion: boolean }) {
     media.add("(min-width: 901px)", () => {
       const panels = element.querySelectorAll<HTMLElement>(".mindset-beat");
       const context = gsap.context(() => {
-        // Hold the destination in the viewport while the camera crosses the gateway.
-        // A widening aperture reveals the real section behind the WebGL frames.
-        gsap.fromTo(".mindset-sticky", { y: () => -innerHeight }, { y: 0, ease: "none", scrollTrigger: { trigger: element, start: "top bottom", end: "top top", scrub: true, invalidateOnRefresh: true } });
-        gsap.fromTo(".mindset-shell", { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, ease: "power2.out", scrollTrigger: { trigger: element, start: "top 65%", end: "top top", scrub: true } });
-        const story = gsap.timeline({ onUpdate: () => { setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top top", end: "bottom bottom", scrub: 0.65 } });
+        // The destination is held by native sticky positioning throughout arrival.
+        // One scrubbed clock drives both the camera and DOM: no translated sticky
+        // element or independent scroll lag to create a jump at the handoff.
+        const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true } });
+        arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
+          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, 0.35);
+        const story = gsap.timeline({ onUpdate: () => { setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
           if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
@@ -63,7 +66,7 @@ export default function Mindset({ staticMotion }: { staticMotion: boolean }) {
       return () => trigger.kill();
     });
     return () => media.revert();
-  }, [staticMotion]);
+  }, [staticMotion, scene]);
   const jump = (index: number) => {
     const el = host.current;
     if (!el) return;
@@ -71,7 +74,7 @@ export default function Mindset({ staticMotion }: { staticMotion: boolean }) {
     const pinned = !staticMotion && matchMedia("(min-width: 901px)").matches;
     const target = pinned ? el : el.querySelectorAll<HTMLElement>(".mindset-beat")[index];
     if (!target) return;
-    const offset = pinned ? (el.offsetHeight - innerHeight) * ((index + 0.4) / 3) : -100;
+    const offset = pinned ? innerHeight + (el.offsetHeight - innerHeight * 2) * ((index + 0.4) / 3) : -100;
     window.scrollTo({ top: target.getBoundingClientRect().top + scrollY + offset, behavior: staticMotion ? "instant" : "smooth" });
   };
   return <section ref={host} id="about" className={`mindset-chapter ${staticMotion ? "mindset-static" : ""}`} data-chapter="1" aria-label="The mindset">

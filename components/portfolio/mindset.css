@@ -47,4 +47,10 @@
 .mindset-static{height:auto;background:#17191c}.mindset-static .mindset-studio{height:430px;align-self:start;margin-top:35px}.mindset-static .mindset-plate{opacity:0!important;transform:none!important}.mindset-static .plate-collection{opacity:1!important}
 .mindset-static .mindset-sticky{top:0}
 .mindset-studio .demo-rig{scale:var(--mindset-demo-fit,.6)!important}
+@media(min-width:901px){
+  .mindset-chapter:not(.mindset-static){margin-top:-100svh;height:450svh;background:transparent}
+  .mindset-chapter:not(.mindset-static) .mindset-sticky{background:transparent;transform:none}
+  .mindset-chapter:not(.mindset-static) .mindset-surface{background:radial-gradient(ellipse at 78% 45%,#34383b44,transparent 65%),#17191c;opacity:0;will-change:opacity}
+  .mindset-chapter:not(.mindset-static) .mindset-shell{position:relative;opacity:0;will-change:opacity}
+}
 @media(max-width:900px){.mindset-sticky{top:0}}

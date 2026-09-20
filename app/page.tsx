@@ -91,7 +91,8 @@ export default function Home() {
       const syncOpening = () => {
         const opening = el.querySelector<HTMLElement>(".opening");
         if (!opening) return;
-        scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
+        // Desktop arrival owns the shared camera/DOM clock in Mindset.
+        if (innerWidth <= 900 || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
         if (paused || reduced) scene.current.openingProgress = 0;
       };
       ScrollTrigger.create({ start: 0, end: "max", onRefresh: syncOpening, onUpdate: self => { syncOpening(); el.style.setProperty("--page-progress", String(self.progress)); const readout = el.querySelector(".progress-number"); if (readout) readout.textContent = `${Math.round(self.progress * 100)}`.padStart(2, "0"); } });
@@ -148,7 +149,7 @@ export default function Home() {
         <div className="hero-scroll"><span>SCROLL TO ENTER THE STORY</span><i><ArrowDown size={14}/></i></div>
       </div>
     </section>
-    <Mindset staticMotion={paused || reduced}/>
+    <Mindset staticMotion={paused || reduced} scene={scene}/>
     <section id="work" className="work-index section-space"><div className="section-eyebrow"><span>02 / SELECTED SYSTEMS</span><span>FOUR CHALLENGES. FOUR WORLDS.</span></div><div className="index-heading reveal"><h2>BUILT TO<br/><em>DO SOMETHING.</em></h2><p>From private reflection to connected classrooms.<br/>Explore the idea, then get inside the engineering.</p></div><div className="project-index-list">{projects.map((project, i) => <a className="index-item" href={`#${project.id}`} key={project.id} style={{ "--project-color": project.color } as CSSProperties}><span>{project.number}</span><strong>{project.name}</strong><span className="index-subtitle">{project.short}</span><span className="index-category">{project.category}</span><ArrowUpRight/><span className="index-hover-word" aria-hidden="true">{i === 0 ? "REFLECT" : i === 1 ? "CONNECT" : i === 2 ? "VERIFY" : "PERSONALIZE"}</span></a>)}</div></section>
     <div className="project-worlds">{projects.map((project, i) => <ProjectStory key={project.id} project={project} index={i} step={steps[i]} onStep={step => jumpStep(i, step)} onDetails={() => setDetail(i)}/>)}</div>
     <section id="experience" className="journey" data-chapter="6"><div className="journey-sticky"><div className="section-eyebrow"><span>03 / ALWAYS IN PROGRESS</span><span>THE JOURNEY SO FAR</span></div><div className="journey-heading"><h2>KEEP LEARNING.<br/><em>KEEP BUILDING.</em></h2><p>Each chapter adds another<br/>way of looking at a problem.</p></div><div className="journey-track">{[

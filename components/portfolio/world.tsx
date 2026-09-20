@@ -153,7 +153,9 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       chapter += (s.chapter - chapter) * ease;
       progress += (s.progress - progress) * ease;
       explosion += ((s.exploded ? 1 : 0) - explosion) * ease;
-      openingProgress += (s.openingProgress - openingProgress) * ease;
+      // GSAP already smooths this clock; smoothing again puts the ring behind
+      // the DOM reveal and makes changes of scroll direction feel discontinuous.
+      openingProgress = s.openingProgress;
       openingExit = s.openingExit;
       const mobile = innerWidth < 800;
       targetColor.set(colors[Math.min(s.chapter, 6)]);
@@ -164,7 +166,10 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const gateway = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingProgress, 0.76, 1);
       const flight = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingExit, 0, 0.98);
       const inPassage = gateway > 0 && openingExit < 1.05;
-      container.style.zIndex = inPassage ? "4" : "0";
+      // Keep the ring above the incoming surface from the start. Changing its
+      // layer only after the morph begins made it disappear and then pop back.
+      container.style.zIndex = openingExit < 1.05 && !s.reduced && !s.paused ? "4" : "0";
+      container.style.opacity = inPassage ? String(1 - THREE.MathUtils.smoothstep(openingExit, .9, 1.05)) : "1";
       interfaceScene.visible = inPassage;
       interfaceScene.position.set(mobile ? 0 : 3.25, 0.1, 0);
       interfaceScene.scale.setScalar(mobile ? .63 : .88);
@@ -245,6 +250,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       lines.visible = nodeVisibility; lineGeometry.attributes.position.needsUpdate = true;
       camera.position.x += ((s.reduced ? 0 : s.pointer.x * 0.35) - camera.position.x) * ease;
       camera.position.y += ((s.reduced ? 0 : -s.pointer.y * 0.25) - camera.position.y) * ease;
+      // Reset the camera behind the opaque destination, after the foreground
+      // has faded away, so particles cannot visibly jump at the section seam.
       const travel = inPassage ? flight : 0;
       const align = inPassage ? gateway : 0;
       camera.position.x = THREE.MathUtils.lerp(camera.position.x, mobile ? 0 : 3.25, align);
