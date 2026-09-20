@@ -1,0 +1,57 @@
+/* Shorter scroll tracks preserve every timeline's normalized animation beats.
+   Native wheel/touch scrolling stays under the visitor's control. */
+.portfolio:not(.motion-paused):not(.reduced-motion) .opening{height:calc(100svh + min(160svh, 1800px))}
+@media(min-width:801px){
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-story{height:calc(100svh + min(240svh, 2600px))}
+  .portfolio:not(.motion-paused):not(.reduced-motion) .journey{height:calc(100svh + min(140svh, 1500px))}
+}
+@media(min-width:901px){
+  /* The first viewport still belongs to the shared ring/camera arrival. */
+  .mindset-chapter:not(.mindset-static){height:calc(200svh + min(190svh, 2100px))}
+}
+@media(min-width:1800px){
+  .section-space,.mindset-shell,.journey-sticky,.portfolio:not(.motion-paused):not(.reduced-motion) .project-sticky{padding-left:max(7%,calc((100vw - 1800px)/2));padding-right:max(7%,calc((100vw - 1800px)/2))}
+  .project-composition{gap:8%;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .project-copy{max-width:720px}
+  .project-intro,.story-copy{max-width:620px}
+  .project-intro,.story-copy p,.mindset-beat p{font-size:18px}
+  .project-demo{width:100%;max-width:740px;justify-self:center}
+  .project-demo .demo-rig{scale:1}
+  .project-demo .demo-caption{margin-top:24px}
+  .mindset-editorial{gap:8%}
+  .mindset-beat p{max-width:570px}
+  .mindset-footnote{max-width:520px;font-size:15px}
+  .mindset-studio{max-width:650px;width:100%;justify-self:center}
+  .index-heading h2,.toolkit-top h2,.journey-heading h2{font-size:clamp(80px,6vw,128px)}
+  .contact-big{font-size:min(14vw,260px)}
+}
+@media(max-width:800px){
+  .portfolio:not(.motion-paused):not(.reduced-motion) .opening{height:240svh}
+  .opening-sticky{min-height:100svh}
+  .project-copy,.project-demo{min-width:0}
+  .project-demo{max-width:100%}
+  .chapter-controls button{min-height:44px}
+  .mindset-navigation button{min-height:44px}
+  .mindset-beat{padding:32px 0;scroll-margin-top:100px}
+  .mindset-shell{padding-bottom:42px}
+  .mindset-studio{height:390px;margin:24px auto}
+  .plate-collection{padding:26px 22px}
+  .plate-collection h3{font-size:52px}
+  .email-address{overflow-wrap:anywhere}
+}
+@media(max-width:480px){
+  .mindset-evidence{grid-template-columns:1fr;gap:16px}
+  .mindset-evidence>div{padding-bottom:14px;border-bottom:1px solid #343a3d}
+  .mindset-evidence>div:last-child{border-bottom:0;padding-bottom:0}
+  .mindset-eyebrow{align-items:flex-start;gap:14px}
+  .mindset-eyebrow>span:last-child{max-width:125px}
+  .collection-item{gap:12px}
+  .collection-item strong{font-size:24px}
+}
+@media(max-width:800px) and (max-height:700px){
+  .hero-name{top:19%;font-size:19vw}
+  .hero-description,.sculpture-controls{bottom:12%}
+  .hero-description p{font-size:12px}
+  .hero-scroll{bottom:16px}
+  .system-caption{bottom:12%}
+}

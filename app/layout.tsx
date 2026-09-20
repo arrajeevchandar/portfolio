@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "../components/portfolio/mindset.css";
 import "../components/portfolio/project-story.css";
+import "../components/portfolio/pacing.css";
 
 export const metadata: Metadata = {
   title: "A R Rajeev Chandar | Full-Stack Developer",
