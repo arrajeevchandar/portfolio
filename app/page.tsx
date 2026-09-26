@@ -11,6 +11,8 @@ import { projects, type Project } from "@/components/portfolio/content";
 import { SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo } from "@/components/portfolio/demos";
 import type { SceneState } from "@/components/portfolio/world";
 import Mindset from "@/components/portfolio/mindset";
+import ResumeViewer from "@/components/portfolio/resume-viewer";
+import ChapterNavigation from "@/components/portfolio/chapter-navigation";
 
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
@@ -24,6 +26,7 @@ const resetMagnet = (event: PointerEvent<HTMLElement>) => { event.currentTarget.
 
 function ProjectStory({ project, index, step, onStep, onDetails }: { project: Project; index: number; step: number; onStep: (step: number) => void; onDetails: () => void }) {
   const Demo = demos[index];
+  const [previewOpen, setPreviewOpen] = useState(false);
   const projectHost = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = projectHost.current;
@@ -32,32 +35,39 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
     const copy = el.querySelector<HTMLElement>(".project-copy")!;
     const demo = el.querySelector<HTMLElement>(".project-demo")!;
     const fit = () => {
+      const prelude = el.querySelector<HTMLElement>(".project-mobile-prelude")!;
+      el.style.setProperty("--mobile-prelude", `${prelude.offsetHeight}px`);
+      const rig = demo.querySelector<HTMLElement>(".demo-rig");
+      if (rig) el.style.setProperty("--mobile-demo-fit", String(Math.min(.8, demo.clientHeight / Math.max(1, rig.offsetHeight), demo.clientWidth / Math.max(1, rig.offsetWidth))));
       const available = composition.clientHeight;
       const natural = Math.max(copy.offsetHeight, demo.offsetHeight);
       el.style.setProperty("--project-fit", String(Math.min(1, available / Math.max(1, natural))));
     };
     const observer = new ResizeObserver(fit);
-    [composition, copy, demo].forEach(item => observer.observe(item));
+    [composition, copy, demo, el.querySelector<HTMLElement>(".project-mobile-prelude")!].forEach(item => observer.observe(item));
     fit();
     return () => observer.disconnect();
   }, []);
   return <section ref={projectHost} id={project.id} className={`project-story project-${project.id}`} data-chapter={index + 2} style={{ "--project-color": project.color } as CSSProperties} aria-labelledby={`${project.id}-title`}>
+    <div className="project-mobile-prelude"><span className="micro">{project.number} / {project.name}</span><h2>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p>{project.intro}</p></div>
     <div className="project-sticky">
       <div className="project-atmosphere" />
       <div className="project-watermark" aria-hidden="true">{project.name}</div>
       <div className="project-topline"><span><b>{project.number}</b> / SELECTED SYSTEMS</span><span>{project.category}</span><span>{project.date}</span></div>
       <div className="project-composition">
-        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3>{project.steps[step].title}</h3><p>{project.steps[step].text}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}>Explore the engineering <Plus size={17}/></button></div>
-        <div className="project-demo"><Demo step={step}/><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
+        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3>{project.steps[step].title}</h3><p>{project.steps[step].text}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}>Explore the engineering <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
+        <div className="project-demo"><div className="demo-motion"><Demo step={step}/></div><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
       </div>
       <div className="project-bottomline"><div className="chapter-controls" aria-label={`${project.name} story steps`}>{project.steps.map((item, i) => <button key={item.label} onClick={() => onStep(i)} aria-current={step === i ? "step" : undefined} className={step === i ? "active" : ""}><span>0{i + 1}</span>{item.label}<i/></button>)}</div><span className="scroll-to-unfold">SCROLL TO UNFOLD <ArrowDown size={14}/></span></div>
     </div>
+    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}><DialogContent className="project-preview-dialog" showCloseButton={false}><header><div><DialogTitle>{project.name}</DialogTitle><DialogDescription>Interactive concept · illustrative data</DialogDescription></div><button aria-label="Close interactive preview" onClick={() => setPreviewOpen(false)}><X/></button></header><Demo step={step}/></DialogContent></Dialog>
   </section>;
 }
 
 export default function Home() {
   const root = useRef<HTMLElement>(null);
   const scene = useRef<SceneState>({ chapter: 0, progress: 0, openingProgress: 0, openingExit: 0, paused: false, reduced: false, exploded: false, pointer: { x: 0, y: 0 } });
+  const [resumeOpen, setResumeOpen] = useState(false);
   const [paused, setPaused] = useState(false), [exploded, setExploded] = useState(false), [menuOpen, setMenuOpen] = useState(false), [detail, setDetail] = useState<number | null>(null), [copied, setCopied] = useState(false);
   const [chapter, setChapter] = useState(0), [steps, setSteps] = useState([0, 0, 0, 0]);
   const reduced = useSyncExternalStore(subscribeMotion, getMotion, getServerMotion);
@@ -68,6 +78,7 @@ export default function Home() {
   useEffect(() => {
     const el = root.current; if (!el) return;
     gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.config({ ignoreMobileResize: true });
     const context = gsap.context(() => {
       const all = Array.from(el.querySelectorAll<HTMLElement>("[data-chapter]"));
       const updateChapter = (element: HTMLElement, progress: number) => {
@@ -82,17 +93,17 @@ export default function Home() {
       // Keep the final stage on screen for a full third of the pinned scroll distance.
       if (!paused && !reduced) gsap.utils.toArray<HTMLElement>(".project-story").forEach((project, index) => {
         const syncStep = (progress: number) => {
-          if (innerWidth <= 800) return;
+          if (innerWidth <= 800 && innerHeight < 600) return;
           const next = Math.min(2, Math.floor(progress * 3));
           setSteps(previous => previous[index] === next ? previous : previous.map((value, i) => i === index ? next : value));
         };
-        ScrollTrigger.create({ trigger: project, start: "top top", end: "bottom bottom", onUpdate: self => syncStep(self.progress), onRefresh: self => syncStep(self.progress) });
+        ScrollTrigger.create({ trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: "bottom bottom", invalidateOnRefresh: true, onUpdate: self => syncStep(self.progress), onRefresh: self => syncStep(self.progress) });
       });
       const syncOpening = () => {
         const opening = el.querySelector<HTMLElement>(".opening");
         if (!opening) return;
         // Desktop arrival owns the shared camera/DOM clock in Mindset.
-        if (innerWidth <= 900 || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
+        if ((innerWidth <= 900 && innerHeight < 600) || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
         if (paused || reduced) scene.current.openingProgress = 0;
       };
       ScrollTrigger.create({ start: 0, end: "max", onRefresh: syncOpening, onUpdate: self => { syncOpening(); el.style.setProperty("--page-progress", String(self.progress)); const readout = el.querySelector(".progress-number"); if (readout) readout.textContent = `${Math.round(self.progress * 100)}`.padStart(2, "0"); } });
@@ -107,7 +118,7 @@ export default function Home() {
           .to(".opening-next, .system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
           .to({}, { duration: 0.16 }, 0.84);
         gsap.utils.toArray<HTMLElement>(".project-story").forEach(project => {
-          gsap.fromTo(project.querySelector(".demo-rig"), { rotateY: -12, rotateZ: -3, y: 45 }, { rotateY: 9, rotateZ: 2, y: -22, ease: "none", scrollTrigger: { trigger: project, start: "top top", end: "bottom bottom", scrub: 1 } });
+          gsap.fromTo(project.querySelector(".demo-motion"), { rotateY: -12, rotateZ: -3, y: 45 }, { rotateY: 9, rotateZ: 2, y: -22, ease: "none", scrollTrigger: { trigger: project, start: "top top", end: "bottom bottom", scrub: 1 } });
           gsap.fromTo(project.querySelector(".project-watermark"), { xPercent: 8 }, { xPercent: -20, ease: "none", scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
           gsap.fromTo(project.querySelector(".project-atmosphere"), { scale: 0.7, opacity: 0.3 }, { scale: 1.5, opacity: 0.7, scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
         });
@@ -121,9 +132,10 @@ export default function Home() {
   }, [reduced, paused]);
   const jumpStep = (index: number, step: number) => {
     const el = document.getElementById(projects[index].id); if (!el) return;
-    if (innerWidth <= 800 || reduced || paused) { setSteps(previous => previous.map((value, i) => i === index ? step : value)); return; }
-    const travel = Math.max(0, el.offsetHeight - innerHeight);
-    const y = el.getBoundingClientRect().top + scrollY + travel * ((step + 0.22) / 3);
+    if ((innerWidth <= 800 && innerHeight < 600) || reduced || paused) { setSteps(previous => previous.map((value, i) => i === index ? step : value)); return; }
+    const lead = el.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight;
+    const travel = Math.max(0, el.offsetHeight - lead - innerHeight);
+    const y = el.getBoundingClientRect().top + scrollY + lead + travel * ((step + 0.22) / 3);
     window.scrollTo({ top: y, behavior: reduced || paused ? "instant" : "smooth" });
     setSteps(previous => previous.map((value, i) => i === index ? step : value));
   };
@@ -134,7 +146,7 @@ export default function Home() {
   return <main ref={root} className={`portfolio ${paused ? "motion-paused" : ""} ${reduced ? "reduced-motion" : ""}`} onPointerMove={pointer}>
     <a className="skip-link" href="#work">Skip to selected projects</a>
     <World state={scene}/><div className="vignette" aria-hidden="true"/><div className="grain" aria-hidden="true"/>
-    <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center">ENGINEERING WITH INTENT<span>BENGALURU / INDIA</span></span><div className="header-actions"><a className="resume-button magnetic" href="/Rajeev-Chandar-Resume.pdf" target="_blank" rel="noreferrer" onPointerMove={magnet} onPointerLeave={resetMagnet}>RÉSUMÉ <Download size={15}/></a><button className="menu-button" aria-label="Open navigation" onClick={() => setMenuOpen(true)}><Menu size={22}/></button></div></header>
+    <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center">ENGINEERING WITH INTENT<span>BENGALURU / INDIA</span></span><div className="header-actions"><button className="resume-button magnetic" onClick={() => setResumeOpen(true)} onPointerMove={magnet} onPointerLeave={resetMagnet}>VIEW RÉSUMÉ <Expand size={15}/></button><a className="resume-download" href="/Rajeev-Chandar-Resume.pdf" download aria-label="Download résumé"><Download size={18}/></a><button className="menu-button" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className="menu-strokes" aria-hidden="true"><i/><i/><i/></span></button></div></header>
     <aside className="journey-rail" aria-label="Current chapter"><span className="rail-number">0{Math.min(chapter + 1, 7)}</span><span className="rail-line"/><span className="rail-name">{chapterNames[chapter]}</span></aside>
     <div className="persistent-controls"><button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
     <section id="home" className="opening" data-chapter="0">
@@ -166,7 +178,8 @@ export default function Home() {
       { id: "foundations", intro: "Understand the problem before the implementation.", tools: ["Data structures", "Algorithms", "Object-oriented design", "Database systems", "Microservices", "Problem solving"], used: "Grounded in academic study, technical training, hands-on projects, and team collaboration." },
     ].map(group => <TabsContent key={group.id} value={group.id}><div className="stack-content"><div><span className="micro">HOW I THINK ABOUT IT</span><h3>{group.intro}</h3><p>{group.used}</p></div><div className="stack-tools">{group.tools.map((tool, i) => <div key={tool}><span>{String(i + 1).padStart(2, "0")}</span><strong>{tool}</strong><Plus size={16}/></div>)}</div></div></TabsContent>)}</Tabs><div className="training-strip"><span className="micro">CONTINUING THE LEARNING</span><span>React.js Essential Training <small>2024</small></span><span>Python for Data Visualization <small>2023</small></span><span>Functional Programming with Java <small>2023</small></span></div></section>
     <footer id="contact" className="contact section-space"><div className="section-eyebrow"><span>05 / THE NEXT THING WE BUILD</span><a href="#home">BACK TO THE START <ArrowUpRight size={14}/></a></div><div className="contact-prelude"><span className="contact-star">✳</span><p>A challenging problem.<br/>A thoughtful team.<br/><strong>A good place to start.</strong></p></div><a className="contact-big" href={`mailto:${email}`}>LET’S MAKE<br/><span>IT HAPPEN.</span><ArrowUpRight/></a><div className="contact-bottom"><div><span className="micro">HAVE A ROLE OR PROJECT IN MIND?</span><a className="email-address" href={`mailto:${email}`}>{email}</a><button className="copy-email" onClick={copyEmail} aria-live="polite">{copied ? <><Check size={14}/>Email copied</> : <>Copy email <Plus size={14}/></>}</button></div><div className="contact-socials"><a href="https://www.linkedin.com/in/a-r-rajeev-chandar-442141264/" target="_blank" rel="noreferrer">LinkedIn<ArrowUpRight size={20}/></a><a href="/Rajeev-Chandar-Resume.pdf" download>Download résumé<Download size={18}/></a></div></div><div className="footer-meta"><span>© 2026 A R RAJEEV CHANDAR</span><span>BENGALURU, INDIA</span><span>CURIOUS BY NATURE. ENGINEER BY CRAFT.</span></div></footer>
-    <Dialog open={menuOpen} onOpenChange={setMenuOpen}><DialogContent className="navigation-dialog" showCloseButton={false}><div className="navigation-top"><DialogTitle>FIND YOUR CHAPTER.</DialogTitle><button aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X/></button></div><DialogDescription>Explore the work, the thinking, and the person behind it.</DialogDescription><nav aria-label="Full site navigation">{[["01", "The introduction", "home"], ["02", "The mindset", "about"], ["03", "Selected work", "work"], ["04", "Experience", "experience"], ["05", "The toolkit", "toolkit"], ["06", "Let’s talk", "contact"]].map(([n, label, id]) => <a href={`#${id}`} key={id} onClick={() => setMenuOpen(false)}><span>{n}</span>{label}<ArrowUpRight/></a>)}</nav><div className="navigation-bottom">BENGALURU / INDIA<a href={`mailto:${email}`}>GET IN TOUCH ↗</a></div></DialogContent></Dialog>
+    <ChapterNavigation open={menuOpen} onOpenChange={setMenuOpen}/>
+    <ResumeViewer open={resumeOpen} onOpenChange={setResumeOpen}/>
     <Dialog open={detail !== null} onOpenChange={open => { if (!open) setDetail(null); }}><DialogContent className="case-dialog" showCloseButton={false}>{selected && <><div className="case-header"><span className="micro">PROJECT {selected.number} / ENGINEERING NOTES</span><button aria-label="Close project details" onClick={() => setDetail(null)}><X/></button></div><DialogTitle style={{ color: selected.color }}>{selected.name}</DialogTitle><DialogDescription>{selected.intro}</DialogDescription><div className="case-meta"><span>{selected.category}</span><span>{selected.date}</span></div><div className="case-section"><span>01 / THE CHALLENGE</span><p>{selected.challenge}</p></div><div className="case-section"><span>02 / THE APPROACH</span><p>{selected.approach}</p></div><div className="case-section"><span>03 / ENGINEERING DECISIONS</span><div className="case-decisions">{selected.decisions.map(([title, text], i) => <article key={title}><b>0{i + 1}</b><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></div><div className="case-section"><span>04 / BUILT WITH</span><div className="case-stack">{selected.stack.map(tool => <span key={tool}>{tool}</span>)}</div></div><p className="case-note">{selected.note}</p><a className="underlined-link" href={`mailto:${email}?subject=${encodeURIComponent(`Let's discuss ${selected.name}`)}`}>Let’s talk about this project<ArrowUpRight size={17}/></a></>}</DialogContent></Dialog>
   </main>;
 }

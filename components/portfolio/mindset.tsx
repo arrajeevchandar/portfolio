@@ -36,13 +36,13 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     if (!element || staticMotion) return;
     gsap.registerPlugin(ScrollTrigger);
     const media = gsap.matchMedia();
-    media.add("(min-width: 901px)", () => {
+    media.add("(min-width: 901px), (min-height: 600px)", () => {
       const panels = element.querySelectorAll<HTMLElement>(".mindset-beat");
       const context = gsap.context(() => {
         // The destination is held by native sticky positioning throughout arrival.
         // One scrubbed clock drives both the camera and DOM: no translated sticky
         // element or independent scroll lag to create a jump at the handoff.
-        const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true } });
+        const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true, onRefresh: self => { scene.current.openingExit = self.progress * 1.1; } } });
         arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
           .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, 0.35);
         const story = gsap.timeline({ onUpdate: () => { setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
@@ -61,7 +61,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
       }, element.parentElement!);
       return () => context.revert();
     });
-    media.add("(max-width: 900px)", () => {
+    media.add("(max-width: 900px) and (max-height: 599px)", () => {
       const trigger = ScrollTrigger.create({ trigger: element, start: "top 20%", end: "bottom bottom", onUpdate: self => { setActive(Math.min(2, Math.floor(self.progress * 3))); } });
       return () => trigger.kill();
     });
@@ -71,7 +71,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     const el = host.current;
     if (!el) return;
     setActive(index);
-    const pinned = !staticMotion && matchMedia("(min-width: 901px)").matches;
+    const pinned = !staticMotion && matchMedia("(min-width: 901px), (min-height: 600px)").matches;
     const target = pinned ? el : el.querySelectorAll<HTMLElement>(".mindset-beat")[index];
     if (!target) return;
     const offset = pinned ? innerHeight + (el.offsetHeight - innerHeight * 2) * ((index + 0.4) / 3) : -100;
