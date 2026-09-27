@@ -5,6 +5,7 @@ import "../components/portfolio/project-story.css";
 import "../components/portfolio/pacing.css";
 import "../components/portfolio/immersive.css";
 import "../components/portfolio/cinema.css";
+import "../components/portfolio/phone-polish.css";
 
 export const metadata: Metadata = {
   title: "A R Rajeev Chandar | Full-Stack Developer",

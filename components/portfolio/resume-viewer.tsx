@@ -73,7 +73,7 @@ export default function ResumeViewer({ open, onOpenChange, still = false }: { op
     }
     onOpenChange(value);
   };
-  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="folio-dialog" data-still={still} showCloseButton={false}
+  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="folio-dialog top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
     onCloseAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>(".resume-button")?.focus({ preventScroll: true }); }}>
     <ResumeDocument close={() => changeOpen(false)} still={still}/>
   </DialogContent></Dialog>;

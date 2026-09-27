@@ -61,7 +61,7 @@ export default function ChapterNavigation({ open, onOpenChange, still = false }:
     }
     onOpenChange(value);
   };
-  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="chapter-theatre" data-still={still} showCloseButton={false}
+  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="chapter-theatre top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
     onCloseAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>(".menu-button")?.focus({ preventScroll: true }); }}>
     <ChapterStage close={() => changeOpen(false)}/>
   </DialogContent></Dialog>;

@@ -73,7 +73,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     });
     const arcs: THREE.Mesh[] = [];
     for (let i = 0; i < 4; i++) {
-      const arc = new THREE.Mesh(new THREE.TorusGeometry(2.5 + (i % 3) * 0.12, 0.012, 6, 60, Math.PI * 0.35), i % 3 ? chrome : acid);
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(2.5 + (i % 3) * 0.12, 0.012, 6, 60, Math.PI * 0.35), (i % 3 ? chrome : acid).clone());
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
@@ -102,6 +102,20 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     g.strokeStyle = "#353a42"; g.beginPath(); g.moveTo(62, 649); g.lineTo(1138, 649); g.stroke();
     g.fillStyle = "#8f949e"; g.font = "16px monospace"; g.fillText("PRIVATE VIDEO JOURNALING", 62, 697); g.fillText("01 / UNDERSTAND", 933, 697);
     const interfaceTextures: THREE.Texture[] = [];
+    const portraitScreen = document.createElement("canvas"); portraitScreen.width = 900; portraitScreen.height = 1200;
+    const pg = portraitScreen.getContext("2d")!;
+    pg.fillStyle = "#1b1e22"; pg.fillRect(0, 0, 900, 1200);
+    pg.fillStyle = "#eeeae3"; pg.font = "44px Georgia"; pg.fillText("solenne ✳", 70, 95);
+    pg.strokeStyle = "#41464d"; pg.lineWidth = 2; pg.beginPath(); pg.moveTo(70, 140); pg.lineTo(830, 140); pg.stroke();
+    pg.fillStyle = "#a4a9b2"; pg.font = "20px monospace"; pg.fillText("A MOMENT TO YOURSELF", 70, 240);
+    pg.fillStyle = "#f0f0ed"; pg.font = "64px Arial"; pg.fillText("Some things are", 70, 345); pg.fillText("better said.", 70, 420);
+    pg.strokeStyle = "#5b586d";
+    [75, 110, 145].forEach(r => { pg.beginPath(); pg.arc(450, 685, r, 0, Math.PI * 2); pg.stroke(); });
+    pg.fillStyle = "#c0b3de"; pg.beginPath(); pg.roundRect(434, 649, 32, 58, 16); pg.fill();
+    pg.strokeStyle = "#c0b3de"; pg.lineWidth = 3; pg.beginPath(); pg.arc(450, 691, 34, 0, Math.PI); pg.moveTo(450, 725); pg.lineTo(450, 747); pg.stroke();
+    for (let i=0;i<55;i++) { const h=12+Math.abs(Math.sin(i*1.7)*Math.sin(i*.21))*85; pg.fillStyle=i%3?"#7e7c91":"#c6bddb"; pg.fillRect(130+i*12,955-h/2,4,h); }
+    pg.fillStyle="#9fa4ad"; pg.font="20px monospace"; pg.fillText("YOUR PRIVATE SPACE",70,1120);
+    const portraitTextures = [0,1].map(i => { const texture = new THREE.CanvasTexture(portraitScreen); texture.colorSpace=THREE.SRGBColorSpace; texture.repeat.x=.5; texture.offset.x=i*.5; return texture; });
     const interfaceLayers = [-1, 1].map((side, i) => {
       const texture = new THREE.CanvasTexture(screen); texture.colorSpace = THREE.SRGBColorSpace;
       texture.repeat.x = .5; texture.offset.x = i * .5; interfaceTextures.push(texture);
@@ -158,13 +172,14 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       openingProgress = s.openingProgress;
       openingExit = s.openingExit;
       const mobile = innerWidth < 800;
+      const phone = innerWidth <= 600;
       targetColor.set(colors[Math.min(s.chapter, 6)]);
       acid.color.lerp(targetColor, ease); nodeMaterial.color.lerp(targetColor, ease); rim.color.lerp(targetColor, ease);
       acid.emissive.copy(acid.color).multiplyScalar(0.18);
       const entrance = s.reduced || s.paused ? 1 : 1 - Math.pow(1 - Math.min(time / 1.8, 1), 3);
       const unfold = THREE.MathUtils.smoothstep(openingProgress, 0.18, 0.72);
       const gateway = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingProgress, 0.76, 1);
-      const flight = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingExit, 0, 0.98);
+      const flight = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingExit, phone ? .08 : 0, 0.98);
       const inPassage = gateway > 0 && openingExit < 1.05;
       // Keep the ring above the incoming surface from the start. Changing its
       // layer only after the morph begins made it disappear and then pop back.
@@ -173,16 +188,25 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       interfaceScene.visible = inPassage;
       interfaceScene.position.set(mobile ? 0 : 3.25, 0.1, 0);
       interfaceScene.scale.setScalar(mobile ? .63 : .88);
+      // A portrait aperture keeps the same ring and camera journey legible on a phone.
+      const portrait = phone ? gateway : 0;
+      const apertureX = THREE.MathUtils.lerp(1, .62, portrait);
+      const apertureY = THREE.MathUtils.lerp(1, 1.35, portrait);
+      interfaceScene.scale.x *= apertureX;
+      interfaceScene.scale.y *= apertureY;
       const separate = THREE.MathUtils.smoothstep(flight, .04, .62);
       interfaceLayers.forEach((layer, i) => {
+        layer.material.map = phone ? portraitTextures[i] : interfaceTextures[i];
         const side = i ? 1 : -1;
-        layer.material.opacity = THREE.MathUtils.smoothstep(gateway, .45, 1);
-        layer.position.set(side * (1.54 + separate * 3.8), separate * (i ? -.3 : .3), -.12 - separate * (i ? 1.8 : .8));
-        layer.rotation.y = -side * separate * .58;
+        layer.material.opacity = THREE.MathUtils.smoothstep(gateway, .45, 1) * (phone ? 1 - THREE.MathUtils.smoothstep(flight, .18, .45) : 1);
+        layer.position.set(side * (1.54 + separate * (phone ? 0 : 3.8)), separate * (phone ? 0 : i ? -.3 : .3), -.12 - separate * (phone ? 0 : i ? 1.8 : .8));
+        layer.rotation.y = -side * separate * (phone ? 0 : .58);
       });
       const turn = Math.sin(time * 0.18) * 0.18;
       sculpture.visible = openingExit < (gateway ? 1.05 : 1.35);
       sculpture.scale.setScalar(mobile ? 0.63 : 0.88);
+      sculpture.scale.x *= apertureX;
+      sculpture.scale.y *= apertureY;
       sculpture.rotation.set(
         THREE.MathUtils.lerp(0.35 + turn + s.pointer.y * 0.15, 0.12 * (1 - gateway), unfold),
         THREE.MathUtils.lerp(0.5 + turn + s.pointer.x * 0.2 + (1 - entrance) * 0.7, -0.18 * (1 - gateway), unfold),
@@ -202,6 +226,9 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       });
       arcs.forEach((arc, i) => {
         arc.visible = gateway < 0.99;
+        const arcMaterial = arc.material as THREE.MeshPhysicalMaterial;
+        arcMaterial.transparent = phone;
+        arcMaterial.opacity = phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1;
         arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
@@ -256,7 +283,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const align = inPassage ? gateway : 0;
       camera.position.x = THREE.MathUtils.lerp(camera.position.x, mobile ? 0 : 3.25, align);
       camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.1, align);
-      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, -5, travel);
+      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, phone ? -2.5 : -5, travel);
       camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
       world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1 - align);
       renderer.render(scene, camera);
@@ -267,7 +294,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
       const materials = new Set<THREE.Material>(); const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.geometry) geometries.add(mesh.geometry); if (mesh.material) (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(m => materials.add(m)); });
-      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); interfaceTextures.forEach(texture => texture.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
+      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); [...interfaceTextures, ...portraitTextures].forEach(texture => texture.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
     };
   }, [state]);
   return <div ref={host} className="world" aria-hidden="true"><div className="world-fallback">RC<span>FULL-STACK / HUMAN-CENTERED</span></div></div>;

@@ -1,0 +1,21 @@
+.project-mobile-label,.story-mobile-text{display:none}
+@media(max-width:600px){
+ .project-topline .project-mobile-label{display:inline!important}.project-watermark{display:none!important}
+ .project-desktop-label,.story-full-text{display:none!important}.project-mobile-label{display:inline}.story-mobile-text{display:block}
+ .project-mobile-prelude{padding:82px 6% 24px!important}.project-mobile-prelude h2{font-size:44px!important;line-height:.95;margin:16px 0 12px!important}.project-mobile-prelude p{font-size:15px!important;line-height:1.5!important;color:#aab0b0}
+ .project-topline{letter-spacing:.08em}.project-topline>span:first-child{display:flex;align-items:center;gap:7px}.project-topline>span:not(:first-child){display:none}
+ .project-copy .step-tech{display:none}.project-copy .story-copy h3{font-size:26px!important;line-height:1.08;margin:10px 0!important}.project-copy .story-copy p{font-size:15px!important;line-height:1.45!important;color:#bbc0c0;max-width:310px}.project-copy .story-copy{min-height:98px!important}
+ .project-copy .underlined-link{display:inline-flex!important;font-size:12px!important;min-height:38px;margin-top:8px!important;gap:12px}.project-copy .mobile-preview-open{margin-left:22px;font-size:12px}
+ .project-demo .floating-panel,.project-demo .float-chip,.project-demo .app-body>h4,.project-demo .app-body>.micro,.project-demo .app-action{display:none!important}
+ .project-demo .demo-rig{width:100%;max-width:330px!important;margin:0!important}.project-demo .app-window{max-width:100%!important;border-radius:12px}.project-demo .app-top{padding:13px 18px!important}.project-demo .app-body{padding:16px 18px!important}.project-demo .app-bottom{font-size:8px;padding:10px}
+ .project-demo .journal-visual{height:115px;margin:0}.project-demo .waveform{height:34px;margin:10px 0}.project-demo .signal-tabs [data-slot=tabs-trigger],.project-demo .goal-tabs [data-slot=tabs-trigger]{font-size:12px;min-height:40px}.project-demo .signal-explanation{font-size:11px;line-height:1.5;min-height:17px}
+ .project-demo .class-banner{margin:0;padding:14px}.project-demo .avatar-stack{display:none}.project-demo .class-panels{grid-template-columns:1fr;margin-top:12px}.project-demo .attendance-panel{display:grid;grid-template-columns:28px 1fr;gap:5px 10px;padding:12px}.project-demo .attendance-panel>svg{grid-row:span 2}.project-demo .attendance-panel>button{grid-column:1/-1;min-height:40px;margin-top:6px;font-size:12px}.project-demo .assessment-panel{padding:14px}.project-demo .cortex-rig[data-step="0"] .assessment-panel,.project-demo .cortex-rig[data-step="0"] .reward-row,.project-demo .cortex-rig[data-step="1"] .attendance-panel,.project-demo .cortex-rig[data-step="2"] .assessment-panel{display:none}.project-demo .reward-row{padding:12px 0 0;margin-top:12px}
+ .project-demo .document-visual{height:140px}.project-demo .document-sheet{scale:.8}.project-demo .chain-stages{margin:8px 0 14px}.project-demo .demo-primary{min-height:40px;font-size:12px}.project-demo .demo-disclaimer{font-size:10px;line-height:1.5;margin-top:10px}
+ .project-demo .fitness-metric{margin:16px 0}.project-demo .fitness-metric>strong{font-size:50px}.project-demo .fitness-metric .waveform{height:24px;margin:12px 0}.project-demo .plan-preview>.micro{display:none}.project-demo .plan-preview>div{padding:7px 0}.project-demo .plan-preview strong{font-size:12px}
+ .project-bottomline .chapter-controls{width:100%;gap:4px}.project-bottomline .chapter-controls button{flex:1;justify-content:center;min-height:44px!important;font-size:12px!important}
+}
+@media(max-width:600px) and (min-height:600px){
+ .portfolio:not(.motion-paused):not(.reduced-motion) .project-sticky{padding:84px 6% 50px!important;gap:10px!important}.portfolio:not(.motion-paused):not(.reduced-motion) .project-composition{gap:8px!important}.portfolio:not(.motion-paused):not(.reduced-motion) .project-story{height:calc(310svh + var(--mobile-prelude,270px))}
+ .portfolio:not(.motion-paused):not(.reduced-motion) .project-demo .demo-rig{scale:var(--mobile-demo-fit,1)!important}
+ .mindset-chapter:not(.mindset-static) .mindset-beat h2{font-size:36px;max-width:330px}.mindset-chapter:not(.mindset-static) .mindset-footnote{display:none}.mindset-chapter:not(.mindset-static) .mindset-editorial{grid-template-rows:minmax(190px,1fr) minmax(120px,.8fr)}
+}

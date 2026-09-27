@@ -38,13 +38,14 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     const media = gsap.matchMedia();
     media.add("(min-width: 901px), (min-height: 600px)", () => {
       const panels = element.querySelectorAll<HTMLElement>(".mindset-beat");
+      const phone = innerWidth <= 600;
       const context = gsap.context(() => {
         // The destination is held by native sticky positioning throughout arrival.
         // One scrubbed clock drives both the camera and DOM: no translated sticky
         // element or independent scroll lag to create a jump at the handoff.
         const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true, onRefresh: self => { scene.current.openingExit = self.progress * 1.1; } } });
         arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
-          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: 0.65, ease: "power2.out" }, 0.35);
+          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: phone ? .18 : 0.65, ease: "power2.out" }, phone ? .82 : 0.35);
         const story = gsap.timeline({ onUpdate: () => { setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);

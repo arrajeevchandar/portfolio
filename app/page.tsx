@@ -17,6 +17,12 @@ import ChapterNavigation from "@/components/portfolio/chapter-navigation";
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
 const chapterNames = ["The introduction", "The mindset", "Solenne", "CortexEdu", "DoChain", "AI Fitness", "The journey"];
+const mobileStories = [
+  ["Capture a private video journal.", "Connect speech, voice, and visual signals.", "Turn the moment into a thoughtful reflection."],
+  ["Bring the classroom and check-in together.", "Turn classwork into clear assessment.", "Recognize the people who participate."],
+  ["Connect a wallet identity.", "Store the document with IPFS.", "Record a verifiable transaction trail."],
+  ["Begin with the person and their goals.", "Generate a routine from that context.", "Present a plan that is easy to follow."],
+];
 const email = "Rajeev.chandar@mca.christuniversity.in";
 const subscribeMotion = (callback: () => void) => { const query = matchMedia("(prefers-reduced-motion: reduce)"); query.addEventListener("change", callback); return () => query.removeEventListener("change", callback); };
 const getMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -38,24 +44,26 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
       const prelude = el.querySelector<HTMLElement>(".project-mobile-prelude")!;
       el.style.setProperty("--mobile-prelude", `${prelude.offsetHeight}px`);
       const rig = demo.querySelector<HTMLElement>(".demo-rig");
-      if (rig) el.style.setProperty("--mobile-demo-fit", String(Math.min(.8, demo.clientHeight / Math.max(1, rig.offsetHeight), demo.clientWidth / Math.max(1, rig.offsetWidth))));
+      if (rig) el.style.setProperty("--mobile-demo-fit", String(Math.min(innerWidth <= 600 ? 1 : .8, demo.clientHeight / Math.max(1, rig.offsetHeight), demo.clientWidth / Math.max(1, rig.offsetWidth))));
       const available = composition.clientHeight;
       const natural = Math.max(copy.offsetHeight, demo.offsetHeight);
       el.style.setProperty("--project-fit", String(Math.min(1, available / Math.max(1, natural))));
     };
     const observer = new ResizeObserver(fit);
     [composition, copy, demo, el.querySelector<HTMLElement>(".project-mobile-prelude")!].forEach(item => observer.observe(item));
+    const rig = demo.querySelector<HTMLElement>(".demo-rig");
+    if (rig) observer.observe(rig);
     fit();
     return () => observer.disconnect();
   }, []);
   return <section ref={projectHost} id={project.id} className={`project-story project-${project.id}`} data-chapter={index + 2} style={{ "--project-color": project.color } as CSSProperties} aria-labelledby={`${project.id}-title`}>
-    <div className="project-mobile-prelude"><span className="micro">{project.number} / {project.name}</span><h2>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p>{project.intro}</p></div>
+    <div className="project-mobile-prelude"><span className="micro">{project.number} / {project.name}</span><h2>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p>{project.short}</p></div>
     <div className="project-sticky">
       <div className="project-atmosphere" />
       <div className="project-watermark" aria-hidden="true">{project.name}</div>
-      <div className="project-topline"><span><b>{project.number}</b> / SELECTED SYSTEMS</span><span>{project.category}</span><span>{project.date}</span></div>
+      <div className="project-topline"><span><b>{project.number}</b> / <span className="project-desktop-label">SELECTED SYSTEMS</span><span className="project-mobile-label">{project.name}</span></span><span>{project.category}</span><span>{project.date}</span></div>
       <div className="project-composition">
-        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3>{project.steps[step].title}</h3><p>{project.steps[step].text}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}>Explore the engineering <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
+        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3>{project.steps[step].title}</h3><p className="story-full-text">{project.steps[step].text}</p><p className="story-mobile-text">{mobileStories[index][step]}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}><span className="project-desktop-label">Explore the engineering</span><span className="project-mobile-label">Project details</span> <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
         <div className="project-demo"><div className="demo-motion"><Demo step={step}/></div><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
       </div>
       <div className="project-bottomline"><div className="chapter-controls" aria-label={`${project.name} story steps`}>{project.steps.map((item, i) => <button key={item.label} onClick={() => onStep(i)} aria-current={step === i ? "step" : undefined} className={step === i ? "active" : ""}><span>0{i + 1}</span>{item.label}<i/></button>)}</div><span className="scroll-to-unfold">SCROLL TO UNFOLD <ArrowDown size={14}/></span></div>
@@ -118,7 +126,7 @@ export default function Home() {
           .to(".opening-next, .system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
           .to({}, { duration: 0.16 }, 0.84);
         gsap.utils.toArray<HTMLElement>(".project-story").forEach(project => {
-          gsap.fromTo(project.querySelector(".demo-motion"), { rotateY: -12, rotateZ: -3, y: 45 }, { rotateY: 9, rotateZ: 2, y: -22, ease: "none", scrollTrigger: { trigger: project, start: "top top", end: "bottom bottom", scrub: 1 } });
+          gsap.fromTo(project.querySelector(".demo-motion"), { rotateY: () => innerWidth <= 600 ? -3 : -12, rotateZ: () => innerWidth <= 600 ? 0 : -3, y: () => innerWidth <= 600 ? 14 : 45 }, { rotateY: () => innerWidth <= 600 ? 3 : 9, rotateZ: () => innerWidth <= 600 ? 0 : 2, y: () => innerWidth <= 600 ? -8 : -22, ease: "none", scrollTrigger: { trigger: project, start: "top top", end: "bottom bottom", scrub: 1, invalidateOnRefresh: true } });
           gsap.fromTo(project.querySelector(".project-watermark"), { xPercent: 8 }, { xPercent: -20, ease: "none", scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
           gsap.fromTo(project.querySelector(".project-atmosphere"), { scale: 0.7, opacity: 0.3 }, { scale: 1.5, opacity: 0.7, scrollTrigger: { trigger: project, start: "top bottom", end: "bottom top", scrub: 1 } });
         });
