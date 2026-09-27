@@ -19,3 +19,7 @@
  .portfolio:not(.motion-paused):not(.reduced-motion) .project-demo .demo-rig{scale:var(--mobile-demo-fit,1)!important}
  .mindset-chapter:not(.mindset-static) .mindset-beat h2{font-size:36px;max-width:330px}.mindset-chapter:not(.mindset-static) .mindset-footnote{display:none}.mindset-chapter:not(.mindset-static) .mindset-editorial{grid-template-rows:minmax(190px,1fr) minmax(120px,.8fr)}
 }
+/* One modest wheel gesture per story beat; every layer uses the same track. */
+@media(min-width:801px),(min-height:600px){
+ .portfolio:not(.motion-paused):not(.reduced-motion) .project-story{height:calc(100svh + var(--mobile-prelude,0px) + clamp(600px,96svh,1020px))}
+}

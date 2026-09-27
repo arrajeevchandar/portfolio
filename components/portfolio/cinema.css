@@ -109,3 +109,30 @@
 [data-still=true].chapter-theatre,[data-still=true].folio-dialog,[data-still=true].chapter-theatre *,[data-still=true].folio-dialog *,[data-still=true].folio-dialog ::before,[data-still=true].folio-dialog ::after{animation:none!important;transition:none!important}
 [data-still=true] .folio-original{opacity:1!important}[data-still=true] .folio-folds{display:none!important}
 @media(prefers-reduced-motion:reduce){.chapter-theatre,.folio-dialog,.chapter-theatre *,.folio-dialog *,.folio-dialog ::before,.folio-dialog ::after{animation:none!important;transition:none!important}.folio-original{opacity:1!important}.folio-folds{display:none!important}}
+/* Chapter atlas: surfaces assemble, linework traces, typography rises last. */
+.chapter-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;border:0;min-height:380px}
+.chapter-door-face{min-height:0;border:1px solid #6a726833;background:linear-gradient(135deg,#202626,#151a1b);transform-origin:50% 100%;transition:background .5s,color .5s,border-color .5s}
+.chapter-door[data-active=true] .chapter-door-face{background:#deded4;border-color:#deded4}
+.chapter-theatre[data-state=open] .chapter-door-face{animation:atlas-assemble 1s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(.12s + var(--door)*65ms)}
+.chapter-theatre[data-state=open] .door-type{animation:atlas-type .7s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(.48s + var(--door)*65ms)}
+.door-type{bottom:30px}.door-type strong,.chapter-door[data-active=true] .door-type strong{font-size:clamp(28px,3vw,52px)}
+.door-type>span{max-height:40px;opacity:.5;transform:none;margin-top:9px;font-size:12px}.door-enter{display:none}
+.door-aperture{width:48%;height:56%;aspect-ratio:auto;top:35%;left:75%;opacity:.35;transform:translate(-50%,-50%);max-width:240px}
+.door-aperture svg{width:100%;height:100%;overflow:visible}.chapter-blueprint{fill:none;stroke:currentColor;stroke-width:1;stroke-dasharray:1;stroke-dashoffset:0;vector-effect:non-scaling-stroke;transition:stroke-width .6s}
+.chapter-theatre[data-state=open] .chapter-blueprint{animation:atlas-draw 1.2s cubic-bezier(.3,0,.2,1) both;animation-delay:calc(.35s + var(--door)*65ms)}
+.door-aperture>span{display:none}.chapter-door[data-active=true] .door-aperture{opacity:.85}.chapter-door[data-active=true] .chapter-blueprint{stroke-width:2}
+.chapter-door .door-aperture svg{transition:transform .8s cubic-bezier(.16,1,.3,1)}.chapter-door[data-active=true] .door-aperture svg{transform:translate(-8px,0) scale(1.12)}
+.chapter-door-face:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 20%,#eff3df17 48%,transparent 70%);transform:translateX(-120%);pointer-events:none}
+.chapter-theatre[data-state=open] .chapter-door-face:after{animation:atlas-light 1.3s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(.25s + var(--door)*65ms)}
+@keyframes atlas-assemble{from{opacity:0;transform:translate3d(0,70px,-260px) rotateX(38deg);clip-path:inset(100% 0 0)}50%{opacity:1}to{opacity:1;transform:none;clip-path:inset(0)}}
+@keyframes atlas-type{from{opacity:0;translate:0 22px;filter:blur(5px)}to{opacity:1;translate:0 0;filter:blur(0)}}
+@keyframes atlas-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes atlas-light{from{transform:translateX(-120%)}to{transform:translateX(120%)}}
+@media(max-width:900px){
+ .chapter-rail{grid-template-columns:1fr;grid-template-rows:repeat(6,minmax(0,1fr));min-height:360px;gap:5px}
+ .chapter-door-face{padding:12px 18px;gap:18px}.door-type{bottom:auto}.door-type strong,.chapter-door[data-active=true] .door-type strong{font-size:clamp(25px,4.8vw,36px)}
+ .door-aperture{left:auto;right:38px;top:50%;width:90px;height:70%;transform:translateY(-50%);opacity:.25!important}.door-type>span{display:none}
+ .chapter-theatre[data-state=open] .chapter-door-face{animation-name:atlas-assemble;animation-delay:calc(.1s + var(--door)*65ms)}
+}
+@media(prefers-reduced-motion:reduce){.chapter-theatre *, .chapter-theatre :after{animation:none!important;transition:none!important}}
+.chapter-theatre[data-still=true] *, .chapter-theatre[data-still=true] :after{animation:none!important;transition:none!important}
