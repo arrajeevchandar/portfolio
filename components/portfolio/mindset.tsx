@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowDown } from "lucide-react";
 import { SolenneDemo, CortexDemo } from "./demos";
 import type { SceneState } from "./world";
+import { PhoneMindset } from "./phone-scenes";
 
 const beats = [
   { word: "Understand the person.", lead: "THE STARTING POINT", label: "Understand", text: "Good software begins with a human need. A quiet space to reflect. A simpler way to check in. A document someone can trust.", note: "Solenne explores the first of those ideas through private video journaling." },
@@ -36,9 +37,10 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     if (!element || staticMotion) return;
     gsap.registerPlugin(ScrollTrigger);
     const media = gsap.matchMedia();
-    media.add("(min-width: 901px), (min-height: 600px)", () => {
-      const panels = element.querySelectorAll<HTMLElement>(".mindset-beat");
-      const phone = innerWidth <= 600;
+    media.add({ phone: "(max-width:600px)", staged: "(min-width: 901px), (min-height: 600px), (max-width:600px) and (min-height:500px)" }, mediaContext => {
+      if (!mediaContext.conditions?.staged) return;
+      const phone = !!mediaContext.conditions?.phone;
+      const panels = element.querySelectorAll<HTMLElement>(phone ? ".phone-mindset-beat" : ".mindset-beat");
       const context = gsap.context(() => {
         // The destination is held by native sticky positioning throughout arrival.
         // One scrubbed clock drives both the camera and DOM: no translated sticky
@@ -51,9 +53,9 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
           if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
         });
-        element.querySelectorAll<HTMLElement>(".mindset-plate").forEach((plate, i) => {
-          if (i) story.fromTo(plate, { z: -650, x: 100, rotateY: -12, opacity: 0 }, { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
-          if (i < 2) story.to(plate, { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
+        element.querySelectorAll<HTMLElement>(phone ? ".phone-mindset-visual" : ".mindset-plate").forEach((plate, i) => {
+          if (i) story.fromTo(plate, phone ? { z: -160, x: 0, y: 60, rotateY: 0, opacity: 0 } : { z: -650, x: 100, rotateY: -12, opacity: 0 }, phone ? { z: 0, x: 0, y: 0, rotateY: 0, opacity: 1, duration: 0.2, ease: "power2.inOut" } : { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
+          if (i < 2) story.to(plate, phone ? { z: 120, x: 0, y: -35, rotateY: 0, opacity: 0, duration: 0.2, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
         });
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
         gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });
@@ -62,7 +64,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
       }, element.parentElement!);
       return () => context.revert();
     });
-    media.add("(max-width: 900px) and (max-height: 599px)", () => {
+    media.add("(min-width:601px) and (max-width: 900px) and (max-height: 599px), (max-width:600px) and (max-height:499px)", () => {
       const trigger = ScrollTrigger.create({ trigger: element, start: "top 20%", end: "bottom bottom", onUpdate: self => { setActive(Math.min(2, Math.floor(self.progress * 3))); } });
       return () => trigger.kill();
     });
@@ -72,7 +74,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     const el = host.current;
     if (!el) return;
     setActive(index);
-    const pinned = !staticMotion && matchMedia("(min-width: 901px), (min-height: 600px)").matches;
+    const pinned = !staticMotion && matchMedia("(min-width: 901px), (min-height: 600px), (max-width:600px) and (min-height:500px)").matches;
     const target = pinned ? el : el.querySelectorAll<HTMLElement>(".mindset-beat")[index];
     if (!target) return;
     const offset = pinned ? innerHeight + (el.offsetHeight - innerHeight * 2) * ((index + 0.4) / 3) : -100;
@@ -83,6 +85,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
       <div className="mindset-surface"/>
       <div className="mindset-shell">
         <div className="mindset-eyebrow"><span>01 / THE MINDSET</span><span>A R RAJEEV CHANDAR</span></div>
+        <PhoneMindset active={active} still={staticMotion}/>
         <div className="mindset-editorial">
           <div className="mindset-narrative">{beats.map((beat, i) => <article className={`mindset-beat mindset-beat-${i}`} key={beat.label}>
             <span className="mindset-kicker">0{i + 1} / {beat.lead}</span><h2>{beat.word}</h2><p>{beat.text}</p><div className="mindset-footnote"><span/> {beat.note}</div>

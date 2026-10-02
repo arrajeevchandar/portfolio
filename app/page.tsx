@@ -12,7 +12,8 @@ import { SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo } from "@/components/
 import type { SceneState } from "@/components/portfolio/world";
 import Mindset from "@/components/portfolio/mindset";
 import ResumeViewer from "@/components/portfolio/resume-viewer";
-import ChapterNavigation from "@/components/portfolio/chapter-navigation";
+import ChapterNavigation from "@/components/portfolio/chapter-navigation";
+import { PhoneJourney } from "@/components/portfolio/phone-scenes";
 
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
@@ -102,7 +103,7 @@ export default function Home() {
       // Keep the final stage on screen for a full third of the pinned scroll distance.
       if (!paused && !reduced) gsap.utils.toArray<HTMLElement>(".project-story").forEach((project, index) => {
         const syncStep = (progress: number) => {
-          if (innerWidth <= 800 && innerHeight < 600) return;
+          if (innerWidth <= 800 && innerHeight < 600 && !(innerWidth <= 600 && innerHeight >= 500)) return;
           const next = Math.min(2, Math.floor(progress * 3));
           setSteps(previous => previous[index] === next ? previous : previous.map((value, i) => i === index ? next : value));
         };
@@ -141,7 +142,7 @@ export default function Home() {
   }, [reduced, paused]);
   const jumpStep = (index: number, step: number) => {
     const el = document.getElementById(projects[index].id); if (!el) return;
-    if ((innerWidth <= 800 && innerHeight < 600) || reduced || paused) { setSteps(previous => previous.map((value, i) => i === index ? step : value)); return; }
+    if ((innerWidth <= 800 && innerHeight < 600 && !(innerWidth <= 600 && innerHeight >= 500)) || reduced || paused) { setSteps(previous => previous.map((value, i) => i === index ? step : value)); return; }
     const lead = el.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight;
     const travel = Math.max(0, el.offsetHeight - lead - innerHeight);
     const y = el.getBoundingClientRect().top + scrollY + lead + travel * ((step + 0.22) / 3);
@@ -173,7 +174,7 @@ export default function Home() {
     <Mindset staticMotion={paused || reduced} scene={scene}/>
     <section id="work" className="work-index section-space"><div className="section-eyebrow"><span>02 / SELECTED SYSTEMS</span><span>FOUR CHALLENGES. FOUR WORLDS.</span></div><div className="index-heading reveal"><h2>BUILT TO<br/><em>DO SOMETHING.</em></h2><p>From private reflection to connected classrooms.<br/>Explore the idea, then get inside the engineering.</p></div><div className="project-index-list">{projects.map((project, i) => <a className="index-item" href={`#${project.id}`} key={project.id} style={{ "--project-color": project.color } as CSSProperties}><span>{project.number}</span><strong>{project.name}</strong><span className="index-subtitle">{project.short}</span><span className="index-category">{project.category}</span><ArrowUpRight/><span className="index-hover-word" aria-hidden="true">{i === 0 ? "REFLECT" : i === 1 ? "CONNECT" : i === 2 ? "VERIFY" : "PERSONALIZE"}</span></a>)}</div></section>
     <div className="project-worlds">{projects.map((project, i) => <ProjectStory key={project.id} project={project} index={i} step={steps[i]} onStep={step => jumpStep(i, step)} onDetails={() => setDetail(i)}/>)}</div>
-    <section id="experience" className="journey" data-chapter="6"><div className="journey-sticky"><div className="section-eyebrow"><span>03 / ALWAYS IN PROGRESS</span><span>THE JOURNEY SO FAR</span></div><div className="journey-heading"><h2>KEEP LEARNING.<br/><em>KEEP BUILDING.</em></h2><p>Each chapter adds another<br/>way of looking at a problem.</p></div><div className="journey-track">{[
+    <section id="experience" className="journey" data-chapter="6"><PhoneJourney still={paused || reduced}/><div className="journey-sticky"><div className="section-eyebrow"><span>03 / ALWAYS IN PROGRESS</span><span>THE JOURNEY SO FAR</span></div><div className="journey-heading"><h2>KEEP LEARNING.<br/><em>KEEP BUILDING.</em></h2><p>Each chapter adds another<br/>way of looking at a problem.</p></div><div className="journey-track">{[
       { year: "2022", tag: "THE FOUNDATION", name: "Top 30 in Karnataka", text: "State rank in the Karnataka II PUC Board Examination. The beginning of a deeper focus on computing.", footer: "ACADEMIC ACHIEVEMENT" },
       { year: "2025", tag: "THE FOUNDATION, DEEPER", name: "BCA. Strong foundations.", text: "Completed a Bachelor of Computer Applications at Jain University with a CGPA of 9.230 / 10.0.", footer: "JAIN UNIVERSITY · 2022–2025" },
       { year: "2025", tag: "THE NEXT CHAPTER", name: "MCA at CHRIST", text: "Began the 2025–27 MCA program. Volunteered at Gateways, a national-level inter-collegiate IT fest.", footer: "CHRIST UNIVERSITY · BENGALURU" },
