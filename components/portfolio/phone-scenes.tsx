@@ -19,7 +19,7 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
   still = useSyncExternalStore(subscribeShortPhone, getShortPhone, getServerShortPhone) || still;
   const [signal, setSignal] = useState(false);
   const [connected, setConnected] = useState(false);
-  return <div className="phone-mindset" data-still={still}>
+  return <div className="phone-mindset" data-still={still} data-scene={active}>
     <div className="phone-mindset-narrative">
       {[
         ["START WITH PEOPLE", "Understand the person.", "A real human need. A thoughtful response."],
@@ -28,6 +28,7 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
       ].map(([label, title, text], i) => <article className="phone-mindset-beat" key={title} aria-hidden={!still && active !== i}><span className="phone-eyebrow">0{i + 1} / {label}</span><h2>{title}</h2><p>{text}</p></article>)}
     </div>
     <div className="phone-mindset-gallery">
+      <div className="phone-stage-frame" aria-hidden="true"><i/><i/><i/><i/><span>FROM INTENT TO EXPERIENCE</span></div>
       <div className="phone-mindset-visual phone-reflection" aria-hidden={!still && active !== 0} inert={!still && active !== 0}>
         <div className="phone-scene-label"><strong>solenne <span>✳</span></strong><span>01 / REFLECT</span></div>
         <div className="phone-reflection-orbit" data-signal={signal}><i/><i/><i/><button aria-label="Explore the reflection signal" aria-pressed={signal} onClick={() => setSignal(!signal)}>{signal ? <Check size={27}/> : <Mic size={27}/>}</button></div>
@@ -36,12 +37,16 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
       </div>
       <div className="phone-mindset-visual phone-system" aria-hidden={!still && active !== 1} inert={!still && active !== 1} data-connected={connected}>
         <div className="phone-scene-label"><strong>CortexEdu</strong><span>02 / CONNECT</span></div>
-        <div className="phone-system-map"><svg viewBox="0 0 300 160" aria-hidden="true"><path d="M60 50 H150 V110 H240"/><circle cx="60" cy="50" r="22"/><circle cx="150" cy="110" r="22"/><circle cx="240" cy="110" r="22"/></svg><span>Interface</span><span>Logic</span><span>Data</span></div>
+        <div className="phone-system-layers" aria-hidden="true">
+          <div className="phone-system-layer layer-data"><span>03 / DATA</span><div className="phone-data-bars"><i/><i/><i/><i/><i/><i/><i/></div><small>A single source of truth</small></div>
+          <div className="phone-system-layer layer-logic"><span>02 / LOGIC</span><div className="phone-logic-route"><i>Check in</i><b>→</b><i>Validate</i><b>→</b><i>Sync</i></div></div>
+          <div className="phone-system-layer layer-interface"><span>01 / INTERFACE</span><strong>A good day<br/>to learn something.</strong><div><span>Today's classroom</span><Check size={15}/></div></div>
+        </div>
         <button className="phone-scene-action" onClick={() => setConnected(!connected)} aria-pressed={connected}><Layers size={18}/>{connected ? "The pieces work together" : "Connect the system"}<ArrowUpRight size={16}/></button>
         <p>{connected ? "Less repetition. More room to learn." : "A classroom. One connected flow."}</p>
       </div>
       <div className="phone-mindset-visual phone-work-stack" aria-hidden={!still && active !== 2} inert={!still && active !== 2}>
-        <span className="phone-eyebrow">IDEAS, IN PRACTICE</span>
+        <span className="phone-eyebrow">IDEAS, IN PRACTICE</span><h3>Made to<br/><em>make a difference.</em></h3>
         {[["solenne","Solenne","Reflection"],["cortexedu","CortexEdu","Learning"],["dochain","DoChain","Trust"],["ai-fitness","AI Fitness","Personalization"]].map(([id,name,label],i)=><a href={`#${id}`} key={id}><span>0{i+1}</span><strong>{name}</strong><small>{label}</small><ArrowUpRight size={17}/></a>)}
       </div>
     </div>
