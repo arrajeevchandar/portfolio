@@ -33,8 +33,8 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
         </defs>
         <circle cx="180" cy="180" r="165" fill="url(#mindset-halo)"/>
         <g fill="none" stroke="url(#mindset-metal)" strokeWidth="9">
-          <ellipse className="orbital-band band-one" transform="rotate(-55 180 180)" cx="180" cy="180" rx="137" ry="65"/>
-          <ellipse className="orbital-band band-two" transform="rotate(55 180 180)" cx="180" cy="180" rx="137" ry="65"/>
+          <ellipse className="orbital-band band-one" cx="180" cy="180" rx="137" ry="65"/>
+          <ellipse className="orbital-band band-two" cx="180" cy="180" rx="137" ry="65"/>
           <ellipse className="orbital-band band-three" cx="180" cy="180" rx="137" ry="65"/>
         </g>
         <circle className="orbital-guide" cx="180" cy="180" r="158" fill="none" stroke="#b8d68e" strokeOpacity=".3" strokeWidth=".7" strokeDasharray="100 32 3 32"/>
