@@ -14,6 +14,7 @@ import Mindset from "@/components/portfolio/mindset";
 import ResumeViewer from "@/components/portfolio/resume-viewer";
 import ChapterNavigation from "@/components/portfolio/chapter-navigation";
 import { PhoneJourney } from "@/components/portfolio/phone-scenes";
+import { PhoneProjectVisual, PhoneScrollRail } from "@/components/portfolio/phone-projects";
 
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
@@ -65,7 +66,7 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
       <div className="project-topline"><span><b>{project.number}</b> / <span className="project-desktop-label">SELECTED SYSTEMS</span><span className="project-mobile-label">{project.name}</span></span><span>{project.category}</span><span>{project.date}</span></div>
       <div className="project-composition">
         <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3>{project.steps[step].title}</h3><p className="story-full-text">{project.steps[step].text}</p><p className="story-mobile-text">{mobileStories[index][step]}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}><span className="project-desktop-label">Explore the engineering</span><span className="project-mobile-label">Project details</span> <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
-        <div className="project-demo"><div className="demo-motion"><Demo step={step}/></div><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
+        <div className="project-demo"><PhoneProjectVisual index={index} step={step} onOpen={() => setPreviewOpen(true)}/><div className="demo-motion"><Demo step={step}/></div><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
       </div>
       <div className="project-bottomline"><div className="chapter-controls" aria-label={`${project.name} story steps`}>{project.steps.map((item, i) => <button key={item.label} onClick={() => onStep(i)} aria-current={step === i ? "step" : undefined} className={step === i ? "active" : ""}><span>0{i + 1}</span>{item.label}<i/></button>)}</div><span className="scroll-to-unfold">SCROLL TO UNFOLD <ArrowDown size={14}/></span></div>
     </div>
@@ -158,7 +159,7 @@ export default function Home() {
     <World state={scene}/><div className="vignette" aria-hidden="true"/><div className="grain" aria-hidden="true"/>
     <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center">ENGINEERING WITH INTENT<span>BENGALURU / INDIA</span></span><div className="header-actions"><button className="resume-button magnetic" onClick={() => setResumeOpen(true)} onPointerMove={magnet} onPointerLeave={resetMagnet}>VIEW RÉSUMÉ <Expand size={15}/></button><a className="resume-download" href="/Rajeev-Chandar-Resume.pdf" download aria-label="Download résumé"><Download size={18}/></a><button className="menu-button" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className="menu-strokes" aria-hidden="true"><i/><i/><i/></span></button></div></header>
     <aside className="journey-rail" aria-label="Current chapter"><span className="rail-number">0{Math.min(chapter + 1, 7)}</span><span className="rail-line"/><span className="rail-name">{chapterNames[chapter]}</span></aside>
-    <div className="persistent-controls"><button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
+    <PhoneScrollRail/><div className="persistent-controls"><button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
     <section id="home" className="opening" data-chapter="0">
       <div className="opening-sticky">
         <div className="hero-meta hero-enter"><span>FULL-STACK DEVELOPER</span><span>PORTFOLIO / 2026</span></div>
