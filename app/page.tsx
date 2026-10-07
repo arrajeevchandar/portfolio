@@ -1,5 +1,5 @@
 "use client";
-
+
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent } from "react";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
@@ -15,7 +15,7 @@ import ResumeViewer from "@/components/portfolio/resume-viewer";
 import ChapterNavigation from "@/components/portfolio/chapter-navigation";
 import { PhoneJourney } from "@/components/portfolio/phone-scenes";
 import { PhoneProjectVisual, PhoneScrollRail, phoneProjectTitles } from "@/components/portfolio/phone-projects";
-
+
 const World = dynamic(() => import("@/components/portfolio/world"), { ssr: false });
 const demos = [SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo];
 const chapterNames = ["The introduction", "The mindset", "Solenne", "CortexEdu", "DoChain", "AI Fitness", "The journey"];
@@ -31,7 +31,7 @@ const getMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const getServerMotion = () => false;
 const magnet = (event: PointerEvent<HTMLElement>) => { if (event.pointerType !== "mouse" || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const r = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty("--mx", `${(event.clientX - r.left - r.width / 2) * 0.14}px`); event.currentTarget.style.setProperty("--my", `${(event.clientY - r.top - r.height / 2) * 0.2}px`); };
 const resetMagnet = (event: PointerEvent<HTMLElement>) => { event.currentTarget.style.setProperty("--mx", "0px"); event.currentTarget.style.setProperty("--my", "0px"); };
-
+
 function ProjectStory({ project, index, step, onStep, onDetails }: { project: Project; index: number; step: number; onStep: (step: number) => void; onDetails: () => void }) {
   const Demo = demos[index];
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -73,7 +73,7 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}><DialogContent className="project-preview-dialog" showCloseButton={false}><header><div><DialogTitle>{project.name}</DialogTitle><DialogDescription>Interactive concept · illustrative data</DialogDescription></div><button aria-label="Close interactive preview" onClick={() => setPreviewOpen(false)}><X/></button></header><Demo step={step}/></DialogContent></Dialog>
   </section>;
 }
-
+
 export default function Home() {
   const root = useRef<HTMLElement>(null);
   const scene = useRef<SceneState>({ chapter: 0, progress: 0, openingProgress: 0, openingExit: 0, paused: false, reduced: false, exploded: false, pointer: { x: 0, y: 0 } });
@@ -120,7 +120,7 @@ export default function Home() {
       };
       ScrollTrigger.create({ start: 0, end: "max", onRefresh: syncOpening, onUpdate: self => { syncOpening(); el.style.setProperty("--page-progress", String(self.progress)); const readout = el.querySelector(".progress-number"); if (readout) readout.textContent = `${Math.round(self.progress * 100)}`.padStart(2, "0"); } });
       if (!reduced && !paused) {
-
+
         const intro = gsap.timeline({ onUpdate: () => { scene.current.openingProgress = intro.progress(); }, scrollTrigger: { trigger: ".opening", start: "top top", end: "bottom bottom", scrub: 0.65 } });
         intro.fromTo(".hero-name .name-one", { yPercent: 0, opacity: 1 }, { yPercent: -35, opacity: 0, duration: 0.25, ease: "power2.inOut" }, 0.05)
           .fromTo(".hero-name .name-two", { yPercent: 0, opacity: 1 }, { yPercent: -25, opacity: 0, duration: 0.25, ease: "power2.inOut" }, 0.09)
@@ -158,7 +158,7 @@ export default function Home() {
   return <main ref={root} className={`portfolio ${paused ? "motion-paused" : ""} ${reduced ? "reduced-motion" : ""}`} onPointerMove={pointer}>
     <a className="skip-link" href="#work">Skip to selected projects</a>
     <World state={scene}/><div className="vignette" aria-hidden="true"/><div className="grain" aria-hidden="true"/>
-    <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center">ENGINEERING WITH INTENT<span>BENGALURU / INDIA</span></span><div className="header-actions"><button className="resume-button magnetic" onClick={() => setResumeOpen(true)} onPointerMove={magnet} onPointerLeave={resetMagnet}>VIEW RÉSUMÉ <Expand size={15}/></button><a className="resume-download" href="/Rajeev-Chandar-Resume.pdf" download aria-label="Download résumé"><Download size={18}/></a><button className="menu-button" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className="menu-strokes" aria-hidden="true"><i/><i/><i/></span></button></div></header>
+    <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center">ENGINEERING WITH INTENT<span>BENGALURU / INDIA</span></span><div className="header-actions"><button className="resume-button magnetic" onClick={() => setResumeOpen(true)} onPointerMove={magnet} onPointerLeave={resetMagnet}>RÉSUMÉ</button><button className="menu-button" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className="menu-strokes" aria-hidden="true"><i/><i/><i/></span></button></div></header>
     <aside className="journey-rail" aria-label="Current chapter"><span className="rail-number">0{Math.min(chapter + 1, 7)}</span><span className="rail-line"/><span className="rail-name">{chapterNames[chapter]}</span></aside>
     <PhoneScrollRail/><div className="persistent-controls"><button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
     <section id="home" className="opening" data-chapter="0">
@@ -167,10 +167,10 @@ export default function Home() {
         <h1 className="hero-name" aria-label="A R Rajeev Chandar"><span className="name-one hero-enter"><span className="hero-initials">A R</span><span className="name-reveal">RAJEEV</span></span><span className="name-two hero-enter"><span className="name-reveal">CHANDAR</span></span></h1>
         <div className="hero-side hero-enter"><span className="micro">THE HUMAN BEHIND THE CODE</span><p>Curiosity in the mind.<br/>Precision in the build.</p></div>
         <div className="hero-description hero-enter"><p>I build systems that make<br/><em>complex things feel simple.</em></p><a href="#work" className="round-cta magnetic" onPointerMove={magnet} onPointerLeave={resetMagnet}>Explore the work <span><ArrowDown size={20}/></span></a></div>
-        <div className="sculpture-controls hero-enter"><button className="sculpture-button" onClick={() => setExploded(!exploded)} aria-pressed={exploded}>{exploded ? <Minus size={15}/> : <Expand size={15}/>} {exploded ? "ASSEMBLE THE FORM" : "EXPLODE THE FORM"}</button><button aria-label="Reset 3D form" className="reset-form" onClick={resetScene}><RotateCcw size={14}/></button><span>ONE FORM. MANY CONNECTED SYSTEMS.</span></div>
+
         <div className="opening-next"><span className="micro">FROM A SINGLE IDEA</span><p>TO AN ENTIRE<br/><em>SYSTEM.</em></p><span className="opening-next-caption">INTERFACE. LOGIC. DATA.<br/>HUMAN EXPERIENCE.</span></div>
         <div className="system-caption" aria-hidden="true"><span>01 / INTERFACE</span><span>02 / LOGIC</span><span>03 / DATA</span><span>04 / PEOPLE</span></div>
-        <div className="hero-scroll"><span>SCROLL TO ENTER THE STORY</span><i><ArrowDown size={14}/></i></div>
+        <div className="hero-scroll"><span>SCROLL TO ENTER THE STORY</span></div>
       </div>
     </section>
     <Mindset staticMotion={paused || reduced} scene={scene}/>
@@ -188,7 +188,7 @@ export default function Home() {
       { id: "engineering", intro: "The logic behind the experience.", tools: ["TypeScript", "JavaScript", "Python", "Go", "Java", "C / C++", "Node.js", "Express.js"], used: "From application development to asynchronous analysis workers and API integration." },
       { id: "data", intro: "A connected system needs solid foundations.", tools: ["MongoDB", "MySQL", "Firebase", "SQL", "Docker", "Git", "GitHub"], used: "Data management, live updates, version control, and reproducible environments." },
       { id: "foundations", intro: "Understand the problem before the implementation.", tools: ["Data structures", "Algorithms", "Object-oriented design", "Database systems", "Microservices", "Problem solving"], used: "Grounded in academic study, technical training, hands-on projects, and team collaboration." },
-    ].map(group => <TabsContent key={group.id} value={group.id}><div className="stack-content"><div><span className="micro">HOW I THINK ABOUT IT</span><h3>{group.intro}</h3><p>{group.used}</p></div><div className="stack-tools">{group.tools.map((tool, i) => <div key={tool}><span>{String(i + 1).padStart(2, "0")}</span><strong>{tool}</strong><Plus size={16}/></div>)}</div></div></TabsContent>)}</Tabs><div className="training-strip"><span className="micro">CONTINUING THE LEARNING</span><span>React.js Essential Training <small>2024</small></span><span>Python for Data Visualization <small>2023</small></span><span>Functional Programming with Java <small>2023</small></span></div></section>
+    ].map(group => <TabsContent key={group.id} value={group.id}><div className="stack-content"><div><span className="micro">HOW I THINK ABOUT IT</span><h3>{group.intro}</h3><p>{group.used}</p></div><div className="stack-tools">{group.tools.map((tool, i) => <div key={tool}><span>{String(i + 1).padStart(2, "0")}</span><strong>{tool}</strong></div>)}</div></div></TabsContent>)}</Tabs><div className="training-strip"><span className="micro">CONTINUING THE LEARNING</span><span>React.js Essential Training <small>2024</small></span><span>Python for Data Visualization <small>2023</small></span><span>Functional Programming with Java <small>2023</small></span></div></section>
     <footer id="contact" className="contact section-space"><div className="section-eyebrow"><span>05 / THE NEXT THING WE BUILD</span><a href="#home">BACK TO THE START <ArrowUpRight size={14}/></a></div><div className="contact-prelude"><span className="contact-star">✳</span><p>A challenging problem.<br/>A thoughtful team.<br/><strong>A good place to start.</strong></p></div><a className="contact-big" href={`mailto:${email}`}>LET’S MAKE<br/><span>IT HAPPEN.</span><ArrowUpRight/></a><div className="contact-bottom"><div><span className="micro">HAVE A ROLE OR PROJECT IN MIND?</span><a className="email-address" href={`mailto:${email}`}>{email}</a><button className="copy-email" onClick={copyEmail} aria-live="polite">{copied ? <><Check size={14}/>Email copied</> : <>Copy email <Plus size={14}/></>}</button></div><div className="contact-socials"><a href="https://www.linkedin.com/in/a-r-rajeev-chandar-442141264/" target="_blank" rel="noreferrer">LinkedIn<ArrowUpRight size={20}/></a><a href="/Rajeev-Chandar-Resume.pdf" download>Download résumé<Download size={18}/></a></div></div><div className="footer-meta"><span>© 2026 A R RAJEEV CHANDAR</span><span>BENGALURU, INDIA</span><span>CURIOUS BY NATURE. ENGINEER BY CRAFT.</span></div></footer>
     <ChapterNavigation open={menuOpen} onOpenChange={setMenuOpen} still={paused || reduced}/>
     <ResumeViewer open={resumeOpen} onOpenChange={setResumeOpen} still={paused || reduced}/>

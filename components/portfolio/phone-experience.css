@@ -259,3 +259,55 @@
  .portfolio .project-copy .story-copy h3{font-size:23px!important}.portfolio .project-copy .story-copy p{font-size:11px!important}
  .phone-project-scene-bottom>strong{font-size:14px}.phone-project-scene-top{font-size:6px}
 }
+/* Shared chrome: a single useful resume action and an edge-position control. */
+.portfolio .sculpture-controls,.portfolio .hero-scroll>i{display:none!important}
+html{scrollbar-width:none}html::-webkit-scrollbar{display:none}
+.phone-scroll-rail{display:block;position:fixed;right:0;top:30%;height:40%;width:22px;z-index:35;touch-action:none;cursor:ns-resize;opacity:.8;outline-offset:-3px}
+.phone-rail-track{position:absolute;right:7px;top:0;bottom:0;width:2px;background:#b5c8b824;border-radius:2px;box-shadow:none}
+.phone-rail-track:before{content:'';position:absolute;inset:0 -3px;background:repeating-linear-gradient(to bottom,#9bb09e66 0 1px,transparent 1px 28px);opacity:.35}
+.phone-rail-track>i{display:block;position:absolute;top:0;left:0;width:2px;height:var(--read);background:#c6df9a;border-radius:2px}
+.phone-rail-track>b{position:absolute;right:-2px;width:6px;height:28px;top:clamp(0px,var(--read),calc(100% - 28px));border-radius:3px;background:#dae8c3;box-shadow:0 0 10px #d0eeb122}
+.phone-rail-label{display:none}.phone-scroll-rail:focus-visible{outline:1px solid #d2edaa;opacity:1}
+.portfolio .header-actions .resume-button{min-width:0;gap:0;padding-left:24px;padding-right:24px}
+/* The destination retains the same architectural grid as the ring passage. */
+.mindset-chapter,.portfolio .mindset-surface{background-image:radial-gradient(ellipse at 75% 35%,#4a665b20,transparent 65%),linear-gradient(#adc4b606 1px,transparent 1px),linear-gradient(90deg,#adc4b606 1px,transparent 1px)!important;background-size:auto,80px 80px,80px 80px!important}
+@media(max-width:600px){
+ .portfolio .header-actions .resume-button{padding:0 17px!important;min-width:85px!important;font-size:11px!important}
+ .phone-scroll-rail{top:33%;height:34%;width:18px}.phone-rail-track{right:4px}
+ .phone-rail-track>b{width:4px;right:-1px;height:24px}
+ .phone-project-0{background:linear-gradient(145deg,#242a2b,#161b1e);border-color:#a7b5b833}
+ .phone-project-0 .phone-project-art{perspective:900px;align-items:stretch}
+ .journal-sequence{display:flex;flex-direction:column;width:100%;height:100%;padding:15px;background:#e7e9e2;color:#28332f;border-radius:8px;box-shadow:0 8px 0 #81958e22;overflow:hidden}
+ .journal-sequence-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid #304b4226}
+ .journal-sequence-header>span{font:22px Georgia,serif}.journal-sequence-header small{font:7px var(--mono);color:#60766c}
+ .journal-sequence-stage{position:relative;flex:1;min-height:0;margin:14px 0}
+ .journal-panel{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateX(24px);transition:transform .65s cubic-bezier(.2,.7,.2,1),opacity .45s;pointer-events:none}
+ .journal-panel>small{font:8px var(--mono);color:#61736a}.journal-panel>strong{font:500 clamp(22px,6vw,29px)/1.12 var(--body);letter-spacing:-.04em}
+ .journal-sequence[data-step='0'] .journal-capture,.journal-sequence[data-step='1'] .journal-analysis,.journal-sequence[data-step='2'] .journal-reflect{opacity:1;transform:translateX(0)}
+ .journal-sequence[data-step='1'] .journal-capture,.journal-sequence[data-step='2'] .journal-capture,.journal-sequence[data-step='2'] .journal-analysis{transform:translateX(-24px)}
+ .journal-timeline{display:flex;align-items:center;justify-content:space-between;flex:1;min-height:24px;max-height:72px;gap:3px}.journal-timeline i{width:3px;background:#748b80;border-radius:2px}
+ .journal-record{display:flex;align-items:center;gap:7px;font-size:11px}.journal-record i{width:7px;height:7px;border-radius:50%;background:#786c85}
+ .journal-channels{display:flex;flex-direction:column;gap:7px;margin-top:auto}.journal-channels>span{display:flex;align-items:center;gap:8px;padding:10px 8px;border:1px solid #53695c35;border-radius:4px;font-size:11px}.journal-channels b{font:8px var(--mono);color:#738878}.journal-channels i{width:20px;height:2px;background:#8c81a0;margin-left:auto}
+ .journal-note{display:flex;flex-direction:column;gap:7px;padding:12px;background:#d9dfd5}.journal-note>span{font:8px var(--mono)}.journal-note i{height:2px;background:#88978a66;width:100%}.journal-note i:last-child{width:65%}
+ .journal-tags{display:flex;gap:6px;font-size:9px}.journal-tags>span{padding:6px;border:1px solid #60726533;border-radius:3px}
+ .journal-sequence-footer{display:flex;gap:5px;align-items:center}.journal-sequence-footer>i{height:2px;width:20px;background:#a7b3a8}.journal-sequence-footer>i.filled{background:#536e59}.journal-sequence-footer small{margin-left:auto;font:8px var(--mono)}
+ .phone-mindset-visual{border-radius:10px!important;box-shadow:none;background:linear-gradient(145deg,#24302d,#19211f);border-color:#819a873d}
+ .phone-reflection .phone-scene-label strong{font:11px var(--mono);letter-spacing:0;color:#c4d4ca}
+ .intent-map{display:flex;flex-direction:column;align-items:center;width:100%;flex:1;justify-content:center;gap:0;min-height:0;color:#dde6df}
+ .intent-origin{border:1px solid #9db59b66;padding:17px 25px;border-radius:5px;font-size:20px;letter-spacing:-.03em;background:#99b38c0c}
+ .intent-connector{width:1px;height:32px;background:#9db59b66;transition:height .6s}
+ .intent-branches{display:flex;width:100%;gap:7px}.intent-branches>span{flex:1;padding:13px 4px;text-align:center;font-size:12px;border:1px solid #92a78d3a;border-radius:4px;transition:background .6s,transform .6s}
+ .intent-outcome{margin-top:22px;color:#96ae9f;font-size:12px}.intent-map[data-expanded=true] .intent-branches>span{background:#aec89b20;transform:translateY(5px)}
+ .phone-system{background:#dce3d9}.phone-work-stack{background:#dce3d9}
+ .phone-stage-frame{opacity:.3}.phone-system-layer{box-shadow:none!important}
+ .phone-work-stack h3{font:500 27px/1.1 var(--body);letter-spacing:-.04em}.phone-work-stack h3 em{font-style:normal}
+}
+@media(max-width:600px) and (max-height:680px){
+ .journal-sequence{padding:10px}.journal-sequence-header{padding-bottom:6px}.journal-sequence-header>span{font-size:17px}.journal-sequence-stage{margin:8px 0}.journal-panel{gap:7px}.journal-panel>strong{font-size:20px}.journal-panel>small{font-size:7px}.journal-channels{gap:4px}.journal-channels>span{padding:6px;font-size:9px}.journal-tags{font-size:7px}.journal-note{padding:7px;gap:5px}
+ .intent-origin{font-size:18px;padding:12px 20px}.intent-connector{height:22px}.intent-branches>span{padding:10px 3px}.intent-outcome{margin-top:15px}
+}
+@media(prefers-reduced-motion:reduce){.journal-panel{transition:none}}
+
+@media(max-width:600px) and (max-height:680px){.journal-tags{display:none}.journal-panel{gap:6px}.journal-panel>strong{font-size:19px}.journal-note{gap:4px}}
+.journal-panel{transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .2s}
+.journal-sequence[data-step='0'] .journal-capture,.journal-sequence[data-step='1'] .journal-analysis,.journal-sequence[data-step='2'] .journal-reflect{transition-delay:.16s}

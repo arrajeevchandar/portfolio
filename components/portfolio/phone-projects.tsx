@@ -36,7 +36,7 @@ export function PhoneProjectVisual({ index, step, onOpen }: { index:number; step
   return <button ref={host} className={`phone-project-scene phone-project-${index}`} data-phase={step} onClick={onOpen} aria-label={`Open interactive ${["Solenne","CortexEdu","DoChain","AI Fitness"][index]} demo`}>
     <span className="phone-project-scene-top"><span>0{step+1} / PRODUCT WALKTHROUGH</span><ArrowUpRight size={18}/></span>
     <span className="phone-project-art" aria-hidden="true">
-      {index===0 && <><span className="journal-lens"><i/><i/><i/><span><Mic size={32}/></span></span><span className="journal-signals">{["VOICE","SPEECH","VISUAL"].map((v,i)=><span key={v} style={{"--order":i} as CSSProperties}>{v}<i/></span>)}</span><span className="journal-result"><Sparkles size={19}/><strong>Journal summary</strong><small>Transcript and reflection cards.</small></span></>}
+      {index===0 && <JournalSequence step={step}/>}
       {index===1 && <><span className="classroom-sheet"><span className="visual-sheet-label">CORTEX / CLASSROOM</span><strong>Software<br/>Engineering</strong><span className="classroom-people">{["R","A","S","+"].map(v=><i key={v}>{v}</i>)}</span><span className="classroom-chart">{[35,62,45,85,70,95].map((h,i)=><i key={i} style={{"--bar":`${h}%`} as CSSProperties}/>)}</span><span className="classroom-reward"><Sparkles size={24}/><strong>Participation<br/>tokens</strong></span></span><span className="classroom-status"><Check size={14}/>{["Class check-in","Assessment overview","Token reward system"][step]}</span></>}
       {index===2 && <><span className="document-halo"/><span className="chain-document"><span className="visual-sheet-label">DOC / 001</span><FileText size={35}/><strong>document.pdf</strong><span className="document-lines"><i/><i/><i/></span><span className="document-seal"><Check size={24}/></span></span><span className="chain-stations"><span><Fingerprint size={19}/>Identity</span><span><Layers size={19}/>Storage</span><span><Check size={19}/>Proof</span></span></>}
       {index===3 && <><span className="fitness-dial"><i/><span><strong>{["GOAL","PLAN","VIEW"][step]}</strong><small>{["USER PREFERENCES","GENERATED ROUTINE","SESSION OVERVIEW"][step]}</small></span></span><span className="fitness-routes">{["Movement","Strength","Recovery"].map((v,i)=><span key={v}><i>0{i+1}</i>{v}<Check size={14}/></span>)}</span></>}
@@ -53,7 +53,7 @@ export function PhoneScrollRail() {
     let frame=0;
     let resizeTimer: ReturnType<typeof setTimeout>;
     let width=innerWidth;
-    const update=()=>{frame=0;if(media.matches)setProgress(Math.round(100*scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight)));};
+    const update=()=>{frame=0;setProgress(Math.round(100*scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight)));};
     const schedule=()=>{if(!frame)frame=requestAnimationFrame(update);};
     const resize=()=>{
       schedule();
@@ -70,4 +70,16 @@ export function PhoneScrollRail() {
     onKeyDown={e=>{if(["ArrowDown","ArrowUp","Home","End","PageDown","PageUp"].includes(e.key)){e.preventDefault();const max=document.documentElement.scrollHeight-innerHeight;const y=e.key==="Home"?0:e.key==="End"?max:scrollY+(e.key==="ArrowUp"||e.key==="PageUp"?-1:1)*innerHeight*.55;window.scrollTo({top:y,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}}}>
     <span className="phone-rail-track"><i/><b/></span><span className="phone-rail-label">SCROLL</span>
   </div>;
+}
+
+export function JournalSequence({step}:{step:number}) {
+ return <span className="journal-sequence" data-step={step}>
+  <span className="journal-sequence-header"><span>solenne</span><small>PRIVATE JOURNAL</small></span>
+  <span className="journal-sequence-stage">
+   <span className="journal-panel journal-capture"><small>01 / CAPTURE</small><strong>A moment<br/>to reflect.</strong><span className="journal-timeline">{Array.from({length:32},(_,i)=><i key={i} style={{height:`${12+Math.abs(Math.sin(i*1.9)*Math.cos(i*.3))*70}%`}}/>)}</span><span className="journal-record"><i/> Video journal</span></span>
+   <span className="journal-panel journal-analysis"><small>02 / UNDERSTAND</small><strong>Three signals.<br/>One entry.</strong><span className="journal-channels">{['Speech / transcript','Voice / tone','Visual / expression'].map((v,i)=><span key={v}><b>0{i+1}</b>{v}<i/></span>)}</span></span>
+   <span className="journal-panel journal-reflect"><small>03 / REFLECT</small><strong>Return to<br/>your thoughts.</strong><span className="journal-note"><span>TRANSCRIPT</span><i/><i/><i/></span><span className="journal-tags"><span>Reflection cards</span><span>Journal history</span></span></span>
+  </span>
+  <span className="journal-sequence-footer">{[0,1,2].map(i=><i key={i} className={i<=step?'filled':''}/>)}<small>0{step+1} / 03</small></span>
+ </span>;
 }

@@ -54,14 +54,14 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
         });
         element.querySelectorAll<HTMLElement>(phone ? ".phone-mindset-visual" : ".mindset-plate").forEach((plate, i) => {
-          if (i) story.fromTo(plate, phone ? { z: -220, x: 0, y: 35, rotateY: -9, opacity: 0 } : { z: -650, x: 100, rotateY: -12, opacity: 0 }, phone ? { z: 0, x: 0, y: 0, rotateY: 0, opacity: 1, duration: 0.16, ease: "power2.inOut" } : { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
-          if (i < 2) story.to(plate, phone ? { z: 210, x: 0, y: -15, rotateY: 9, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
+          if (i) story.fromTo(plate, phone ? { z: -60, x: 0, y: 28, rotateY: 0, opacity: 0 } : { z: -650, x: 100, rotateY: -12, opacity: 0 }, phone ? { z: 0, x: 0, y: 0, rotateY: 0, opacity: 1, duration: 0.16, ease: "power2.inOut" } : { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
+          if (i < 2) story.to(plate, phone ? { z: 30, x: 0, y: -28, rotateY: 0, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
         });
         if (phone) {
           // A continuous architectural frame carries the eye between scenes.
-          story.fromTo(".phone-stage-frame", { rotateY: -4, rotateX: 3 }, { rotateY: 4, rotateX: -3, duration: 1, ease: "none" }, 0);
-          story.fromTo(".phone-reflection-orbit", { rotate: -16, scale: .9 }, { rotate: 14, scale: 1.08, duration: .3, ease: "none" }, 0);
-          story.fromTo(".phone-system-layers", { rotateY: -10, rotateX: 12 }, { rotateY: 7, rotateX: -4, duration: .3, ease: "none" }, .34);
+          story.fromTo(".phone-stage-frame", { y: 10, scale: .98 }, { y: -10, scale: 1.02, duration: 1, ease: "none" }, 0);
+          story.fromTo(".intent-map", { y: 12, scale: .96 }, { y: -8, scale: 1, duration: .3, ease: "none" }, 0);
+          story.fromTo(".phone-system-layers", { y: 12, rotateX: 0 }, { y: -8, rotateX: 0, duration: .3, ease: "none" }, .34);
         }
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
         gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });

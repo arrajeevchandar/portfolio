@@ -82,39 +82,37 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     const interfaceScene = new THREE.Group(); scene.add(interfaceScene);
     const screen = document.createElement("canvas"); screen.width = 1200; screen.height = 740;
     const g = screen.getContext("2d")!;
-    g.fillStyle = "#1b1e22"; g.fillRect(0, 0, 1200, 740);
-    g.strokeStyle = "#41464d"; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(0, 82); g.lineTo(1200, 82); g.stroke();
-    g.fillStyle = "#eeeae3"; g.font = "32px Georgia"; g.fillText("solenne ✳", 55, 53);
-    g.fillStyle = "#929aa5"; g.font = "16px monospace"; g.fillText("YOUR PRIVATE SPACE", 865, 49);
-    g.fillStyle = "#a4a9b2"; g.font = "17px monospace"; g.fillText("A MOMENT TO YOURSELF", 62, 155);
-    g.fillStyle = "#f0f0ed"; g.font = "52px Arial"; g.fillText("Some things are", 60, 239); g.fillText("better said.", 60, 302);
-    g.fillStyle = "#9ba2ad"; g.font = "23px Arial"; g.fillText("A little space. A clearer mind.", 62, 358);
-    g.strokeStyle = "#383d46"; g.strokeRect(62, 422, 449, 155);
-    g.fillStyle = "#c3b9df"; g.font = "18px monospace"; g.fillText("VIDEO JOURNAL", 90, 463);
-    g.fillStyle = "#d5d6dc"; g.font = "25px Arial"; g.fillText("Start with a real moment.", 90, 520);
-    g.strokeStyle = "#454453"; g.lineWidth = 2;
-    [72, 95, 122].forEach(r => { g.beginPath(); g.arc(881, 305, r, 0, Math.PI * 2); g.stroke(); });
-    g.fillStyle = "#c0b3de"; g.beginPath(); g.roundRect(868, 275, 26, 48, 13); g.fill();
-    g.strokeStyle = "#c0b3de"; g.beginPath(); g.arc(881, 307, 27, 0, Math.PI); g.moveTo(881, 334); g.lineTo(881, 350); g.stroke();
-    for(let i = 0; i < 65; i++){ const h = 10 + Math.abs(Math.sin(i * 1.7) * Math.sin(i * .21)) * 70; g.fillStyle = i % 3 ? "#7e7c91" : "#c6bddb"; g.fillRect(661+i*7, 485-h/2, 3, h); }
-    g.fillStyle = "#9fa4ad"; g.font = "17px monospace"; g.fillText("VOICE  /  SPEECH  /  VISUAL", 690, 576);
-    g.strokeStyle = "#353a42"; g.beginPath(); g.moveTo(62, 649); g.lineTo(1138, 649); g.stroke();
-    g.fillStyle = "#8f949e"; g.font = "16px monospace"; g.fillText("PRIVATE VIDEO JOURNALING", 62, 697); g.fillText("01 / UNDERSTAND", 933, 697);
+    const drawIntent = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      ctx.fillStyle='#151d20'; ctx.fillRect(0,0,w,h);
+      ctx.strokeStyle='#2b393c'; ctx.lineWidth=1;
+      for(let x=0;x<w;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+      for(let y=0;y<h;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+      const portrait=h>w, pad=w*.075;
+      ctx.fillStyle='#a3b6af';ctx.font=`${w*.022}px monospace`;ctx.fillText('01 / THE MINDSET',pad,h*.13);
+      ctx.fillStyle='#edf0e9';ctx.font=`500 ${w*.075}px Arial`;ctx.fillText('Built around',pad,h*.28);ctx.fillText('people.',pad,h*.28+w*.087);
+      const labels=['PEOPLE','SYSTEMS','EXPERIENCE'];
+      labels.forEach((label,i)=>{
+        const x=portrait?pad:pad+i*w*.295, y=portrait?h*.49+i*h*.135:h*.66;
+        ctx.strokeStyle='#6e8981';ctx.lineWidth=2;ctx.strokeRect(x,y,w*(portrait?.85:.255),h*.085);
+        ctx.fillStyle=i===0?'#d4f58c':'#c3d2cb';ctx.font=`${w*.021}px monospace`;ctx.fillText(label,x+w*.025,y+h*.052);
+        if(i<2){ctx.beginPath();if(portrait){ctx.moveTo(w*.5,y+h*.085);ctx.lineTo(w*.5,y+h*.135);}else{ctx.moveTo(x+w*.255,y+h*.042);ctx.lineTo(x+w*.295,y+h*.042);}ctx.stroke();}
+      });
+      ctx.fillStyle='#829b91';ctx.font=`${w*.018}px monospace`;ctx.fillText('UNDERSTAND / CONNECT / BUILD',pad,h*.92);
+    };
+    drawIntent(g,1200,740);
     const interfaceTextures: THREE.Texture[] = [];
-    const portraitScreen = document.createElement("canvas"); portraitScreen.width = 900; portraitScreen.height = 1200;
-    const pg = portraitScreen.getContext("2d")!;
-    pg.fillStyle = "#1b1e22"; pg.fillRect(0, 0, 900, 1200);
-    pg.fillStyle = "#eeeae3"; pg.font = "44px Georgia"; pg.fillText("solenne ✳", 70, 95);
-    pg.strokeStyle = "#41464d"; pg.lineWidth = 2; pg.beginPath(); pg.moveTo(70, 140); pg.lineTo(830, 140); pg.stroke();
-    pg.fillStyle = "#a4a9b2"; pg.font = "20px monospace"; pg.fillText("A MOMENT TO YOURSELF", 70, 240);
-    pg.fillStyle = "#f0f0ed"; pg.font = "64px Arial"; pg.fillText("Some things are", 70, 345); pg.fillText("better said.", 70, 420);
-    pg.strokeStyle = "#5b586d";
-    [75, 110, 145].forEach(r => { pg.beginPath(); pg.arc(450, 685, r, 0, Math.PI * 2); pg.stroke(); });
-    pg.fillStyle = "#c0b3de"; pg.beginPath(); pg.roundRect(434, 649, 32, 58, 16); pg.fill();
-    pg.strokeStyle = "#c0b3de"; pg.lineWidth = 3; pg.beginPath(); pg.arc(450, 691, 34, 0, Math.PI); pg.moveTo(450, 725); pg.lineTo(450, 747); pg.stroke();
-    for (let i=0;i<55;i++) { const h=12+Math.abs(Math.sin(i*1.7)*Math.sin(i*.21))*85; pg.fillStyle=i%3?"#7e7c91":"#c6bddb"; pg.fillRect(130+i*12,955-h/2,4,h); }
-    pg.fillStyle="#9fa4ad"; pg.font="20px monospace"; pg.fillText("YOUR PRIVATE SPACE",70,1120);
+    const portraitScreen = document.createElement('canvas');portraitScreen.width=900;portraitScreen.height=1200;
+    drawIntent(portraitScreen.getContext('2d')!,900,1200);
+    // Architectural planes extend the aperture into the surrounding space.
+    const passageField = new THREE.Group();scene.add(passageField);
+    const fieldMaterial = new THREE.LineBasicMaterial({color:0x819e94,transparent:true,opacity:0});
+    for(let n=0;n<3;n++) {
+      const points:number[]=[];
+      for(let x=-18;x<=18;x+=3)points.push(x,-10,0,x,10,0);
+      for(let y=-10;y<=10;y+=3)points.push(-18,y,0,18,y,0);
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+      const plane=new THREE.LineSegments(geometry,fieldMaterial);plane.position.z=-4-n*5;passageField.add(plane);
+    }
     const portraitTextures = [0,1].map(i => { const texture = new THREE.CanvasTexture(portraitScreen); texture.colorSpace=THREE.SRGBColorSpace; texture.repeat.x=.5; texture.offset.x=i*.5; return texture; });
     const interfaceLayers = [-1, 1].map((side, i) => {
       const texture = new THREE.CanvasTexture(screen); texture.colorSpace = THREE.SRGBColorSpace;
@@ -185,6 +183,10 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       // layer only after the morph begins made it disappear and then pop back.
       container.style.zIndex = openingExit < 1.05 && !s.reduced && !s.paused ? "4" : "0";
       container.style.opacity = inPassage ? String(1 - THREE.MathUtils.smoothstep(openingExit, .9, 1.05)) : "1";
+      passageField.visible = openingProgress > .45 && openingExit < 1.05;
+      fieldMaterial.opacity = .1 * THREE.MathUtils.smoothstep(openingProgress,.45,.85) * (1-THREE.MathUtils.smoothstep(openingExit,.8,1.05));
+      passageField.position.x = (mobile ? 0 : 3.25) * gateway;
+      passageField.rotation.z = -.06 * (1-flight);
       interfaceScene.visible = inPassage;
       interfaceScene.position.set(mobile ? 0 : 3.25, 0.1, 0);
       interfaceScene.scale.setScalar(mobile ? .63 : .88);

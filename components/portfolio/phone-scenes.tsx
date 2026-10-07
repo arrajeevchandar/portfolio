@@ -30,10 +30,12 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
     <div className="phone-mindset-gallery">
       <div className="phone-stage-frame" aria-hidden="true"><i/><i/><i/><i/><span>FROM INTENT TO EXPERIENCE</span></div>
       <div className="phone-mindset-visual phone-reflection" aria-hidden={!still && active !== 0} inert={!still && active !== 0}>
-        <div className="phone-scene-label"><strong>solenne <span>✳</span></strong><span>01 / REFLECT</span></div>
-        <div className="phone-reflection-orbit" data-signal={signal}><i/><i/><i/><button aria-label="Explore the reflection signal" aria-pressed={signal} onClick={() => setSignal(!signal)}>{signal ? <Check size={27}/> : <Mic size={27}/>}</button></div>
-        <div className="phone-signal-bars" aria-hidden="true">{Array.from({length:35}, (_,i)=><i key={i} style={{height:`${10 + Math.abs(Math.sin(i*1.8)*Math.cos(i*.3))*35}px`}}/>)}</div>
-        <p>{signal ? "A moment, understood." : "Your story starts here."}</p><span className="phone-tap-hint">{signal ? "TAP TO RESET" : "TAP TO EXPLORE"}</span>
+        <div className="phone-scene-label"><strong>01 / PEOPLE</strong><span>THE STARTING POINT</span></div>
+        <button className="intent-map" onClick={() => setSignal(!signal)} aria-pressed={signal} aria-label="Explore the design process" data-expanded={signal}>
+         <span className="intent-origin">A human need</span><span className="intent-connector"/>
+         <span className="intent-branches"><span>Listen</span><span>Observe</span><span>Define</span></span>
+         <span className="intent-outcome">{signal ? 'A clear problem to solve' : 'Start with understanding'}</span>
+        </button><span className="phone-tap-hint">TAP TO TRACE THE PROCESS</span>
       </div>
       <div className="phone-mindset-visual phone-system" aria-hidden={!still && active !== 1} inert={!still && active !== 1} data-connected={connected}>
         <div className="phone-scene-label"><strong>CortexEdu</strong><span>02 / CONNECT</span></div>
