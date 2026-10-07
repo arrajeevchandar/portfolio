@@ -58,10 +58,17 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           if (i < 2) story.to(plate, phone ? { z: 30, x: 0, y: -28, rotateY: 0, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
         });
         if (phone) {
-          // A continuous architectural frame carries the eye between scenes.
-          story.fromTo(".phone-stage-frame", { y: 10, scale: .98 }, { y: -10, scale: 1.02, duration: 1, ease: "none" }, 0);
-          story.fromTo(".intent-map", { y: 12, scale: .96 }, { y: -8, scale: 1, duration: .3, ease: "none" }, 0);
-          story.fromTo(".phone-system-layers", { y: 12, rotateX: 0 }, { y: -8, rotateX: 0, duration: .3, ease: "none" }, .34);
+          gsap.set('.orbital-band',{svgOrigin:'180 180'});
+          gsap.set('.band-one',{rotation:-55});gsap.set('.band-two',{rotation:55});gsap.set('.band-three',{rotation:0});
+          // One continuous assembly, driven by the same scrubbed story clock.
+          story.to('.band-one',{rotation:0,y:-47,scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
+            .to('.band-two',{rotation:0,y:47,scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
+            .to('.band-three',{scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
+            .to('.orbital-sculpture',{scale:.9,rotation:0,duration:.22},.22)
+            .to('.band-one',{rotation:-35,y:0,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
+            .to('.band-two',{rotation:35,y:0,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
+            .to('.band-three',{rotation:90,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
+            .to('.orbital-guide',{rotation:140,svgOrigin:'180 180',duration:1,ease:'none'},0);
         }
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
         gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });

@@ -17,39 +17,36 @@ const getServerShortPhone = () => false;
 
 export function PhoneMindset({ active, still }: { active: number; still: boolean }) {
   still = useSyncExternalStore(subscribeShortPhone, getShortPhone, getServerShortPhone) || still;
-  const [signal, setSignal] = useState(false);
-  const [connected, setConnected] = useState(false);
-  return <div className="phone-mindset" data-still={still} data-scene={active}>
+  return <div className="phone-mindset mindset-orbital" data-still={still} data-scene={active}>
     <div className="phone-mindset-narrative">
       {[
-        ["START WITH PEOPLE", "Understand the person.", "A real human need. A thoughtful response."],
-        ["CONNECT THE PIECES", "Think in systems.", "Interface, logic, and data. One connected experience."],
-        ["MAKE IT REAL", "Let the work speak.", "Four ideas. Built with intention."]
-      ].map(([label, title, text], i) => <article className="phone-mindset-beat" key={title} aria-hidden={!still && active !== i}><span className="phone-eyebrow">0{i + 1} / {label}</span><h2>{title}</h2><p>{text}</p></article>)}
+        ["THE PERSON", "Begin with a need.", "Understand what someone is trying to do."],
+        ["THE SYSTEM", "Make the pieces work.", "Connect the interface, application logic and data."],
+        ["THE WORK", "Put it into practice.", "Four projects. Four different problems to solve."]
+      ].map(([label,title,text],i)=><article className="phone-mindset-beat" key={label} aria-hidden={!still&&active!==i}><span className="phone-eyebrow">0{i+1} / {label}</span><h2>{title}</h2><p>{text}</p></article>)}
     </div>
-    <div className="phone-mindset-gallery">
-      <div className="phone-stage-frame" aria-hidden="true"><i/><i/><i/><i/><span>FROM INTENT TO EXPERIENCE</span></div>
-      <div className="phone-mindset-visual phone-reflection" aria-hidden={!still && active !== 0} inert={!still && active !== 0}>
-        <div className="phone-scene-label"><strong>01 / PEOPLE</strong><span>THE STARTING POINT</span></div>
-        <button className="intent-map" onClick={() => setSignal(!signal)} aria-pressed={signal} aria-label="Explore the design process" data-expanded={signal}>
-         <span className="intent-origin">A human need</span><span className="intent-connector"/>
-         <span className="intent-branches"><span>Listen</span><span>Observe</span><span>Define</span></span>
-         <span className="intent-outcome">{signal ? 'A clear problem to solve' : 'Start with understanding'}</span>
-        </button><span className="phone-tap-hint">TAP TO TRACE THE PROCESS</span>
-      </div>
-      <div className="phone-mindset-visual phone-system" aria-hidden={!still && active !== 1} inert={!still && active !== 1} data-connected={connected}>
-        <div className="phone-scene-label"><strong>CortexEdu</strong><span>02 / CONNECT</span></div>
-        <div className="phone-system-layers" aria-hidden="true">
-          <div className="phone-system-layer layer-data"><span>03 / DATA</span><div className="phone-data-bars"><i/><i/><i/><i/><i/><i/><i/></div><small>A single source of truth</small></div>
-          <div className="phone-system-layer layer-logic"><span>02 / LOGIC</span><div className="phone-logic-route"><i>Check in</i><b>→</b><i>Validate</i><b>→</b><i>Sync</i></div></div>
-          <div className="phone-system-layer layer-interface"><span>01 / INTERFACE</span><strong>A good day<br/>to learn something.</strong><div><span>Today's classroom</span><Check size={15}/></div></div>
-        </div>
-        <button className="phone-scene-action" onClick={() => setConnected(!connected)} aria-pressed={connected}><Layers size={18}/>{connected ? "The pieces work together" : "Connect the system"}<ArrowUpRight size={16}/></button>
-        <p>{connected ? "Less repetition. More room to learn." : "A classroom. One connected flow."}</p>
-      </div>
-      <div className="phone-mindset-visual phone-work-stack" aria-hidden={!still && active !== 2} inert={!still && active !== 2}>
-        <span className="phone-eyebrow">IDEAS, IN PRACTICE</span><h3>Made to<br/><em>make a difference.</em></h3>
-        {[["solenne","Solenne","Reflection"],["cortexedu","CortexEdu","Learning"],["dochain","DoChain","Trust"],["ai-fitness","AI Fitness","Personalization"]].map(([id,name,label],i)=><a href={`#${id}`} key={id}><span>0{i+1}</span><strong>{name}</strong><small>{label}</small><ArrowUpRight size={17}/></a>)}
+    <div className="orbital-stage" aria-hidden="true">
+      <svg className="orbital-sculpture" viewBox="0 0 360 360">
+        <defs>
+          <linearGradient id="mindset-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4c5750"/><stop offset=".22" stopColor="#e9eddf"/><stop offset=".32" stopColor="#7c8c79"/><stop offset=".53" stopColor="#252f29"/><stop offset=".74" stopColor="#bec9ae"/><stop offset=".85" stopColor="#eff2e4"/><stop offset="1" stopColor="#5b6b56"/></linearGradient>
+          <radialGradient id="mindset-halo"><stop stopColor="#c8e6a2" stopOpacity=".13"/><stop offset="1" stopColor="#c8e6a2" stopOpacity="0"/></radialGradient>
+        </defs>
+        <circle cx="180" cy="180" r="165" fill="url(#mindset-halo)"/>
+        <g fill="none" stroke="url(#mindset-metal)" strokeWidth="9">
+          <ellipse className="orbital-band band-one" transform="rotate(-55 180 180)" cx="180" cy="180" rx="137" ry="65"/>
+          <ellipse className="orbital-band band-two" transform="rotate(55 180 180)" cx="180" cy="180" rx="137" ry="65"/>
+          <ellipse className="orbital-band band-three" cx="180" cy="180" rx="137" ry="65"/>
+        </g>
+        <circle className="orbital-guide" cx="180" cy="180" r="158" fill="none" stroke="#b8d68e" strokeOpacity=".3" strokeWidth=".7" strokeDasharray="100 32 3 32"/>
+        <circle className="orbital-core" cx="180" cy="180" r="6" fill="#d3ff40"/>
+      </svg>
+      <div className="orbital-caption"><span>{['A SINGLE STARTING POINT','ONE CONNECTED SYSTEM','IDEAS, MADE TANGIBLE'][active]}</span><b>0{active+1}</b></div>
+    </div>
+    <div className="orbital-evidence">
+      <div className="orbital-note" aria-hidden={active!==0}><span>01 / OBSERVE</span><p>Less friction.<br/><strong>A clearer experience.</strong></p></div>
+      <div className="orbital-note" aria-hidden={active!==1}><span>02 / CONNECT</span><div className="orbital-stack"><span>Interface</span><i/><span>Logic</span><i/><span>Data</span></div></div>
+      <div className="orbital-projects" aria-hidden={active!==2} inert={!still&&active!==2}>
+       {[["solenne","Solenne","Reflection"],["cortexedu","CortexEdu","Learning"],["dochain","DoChain","Documents"],["ai-fitness","AI Fitness","Personalization"]].map(([id,name,label],i)=><a href={`#${id}`} key={id}><span>0{i+1}</span><strong>{name}</strong><small>{label}</small></a>)}
       </div>
     </div>
   </div>;

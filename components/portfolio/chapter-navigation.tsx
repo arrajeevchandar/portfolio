@@ -46,7 +46,7 @@ function ChapterStage({ close }: { close: () => void }) {
         </div>
       </a>)}
     </nav>
-    <footer className="theatre-footer"><span>BENGALURU / INDIA</span><span>ENGINEERING WITH INTENT</span><span><b>{active === null ? "—" : chapters[active][3]}</b> / 06</span></footer>
+    <footer className="theatre-footer"><span>BENGALURU / INDIA</span><span><b>{active === null ? "—" : chapters[active][3]}</b> / 06</span></footer>
   </div>;
 }
 

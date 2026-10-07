@@ -53,7 +53,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     const frameNormals = new Float32Array(sourcePositions.count * 3);
     const framePoint = (u: number) => {
       const c = Math.cos(u), s = Math.sin(u);
-      return new THREE.Vector3(3.2 * Math.sign(c) * Math.pow(Math.abs(c), 0.35), 2 * Math.sign(s) * Math.pow(Math.abs(s), 0.35), 0);
+      return new THREE.Vector3(3.2 * Math.sign(c) * Math.pow(Math.abs(c), 0.65), 2 * Math.sign(s) * Math.pow(Math.abs(s), 0.65), 0);
     };
     for (let i = 0; i < sourcePositions.count; i++) {
       const u = uv.getX(i) * Math.PI * 2, v = uv.getY(i) * Math.PI * 2;
@@ -77,48 +77,13 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
-    // The ring becomes a product window. Two interface layers part as the
-    // camera enters the experience, connecting the sculpture to Solenne.
-    const interfaceScene = new THREE.Group(); scene.add(interfaceScene);
-    const screen = document.createElement("canvas"); screen.width = 1200; screen.height = 740;
-    const g = screen.getContext("2d")!;
-    const drawIntent = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-      ctx.fillStyle='#151d20'; ctx.fillRect(0,0,w,h);
-      ctx.strokeStyle='#2b393c'; ctx.lineWidth=1;
-      for(let x=0;x<w;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
-      for(let y=0;y<h;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-      const portrait=h>w, pad=w*.075;
-      ctx.fillStyle='#a3b6af';ctx.font=`${w*.022}px monospace`;ctx.fillText('01 / THE MINDSET',pad,h*.13);
-      ctx.fillStyle='#edf0e9';ctx.font=`500 ${w*.075}px Arial`;ctx.fillText('Built around',pad,h*.28);ctx.fillText('people.',pad,h*.28+w*.087);
-      const labels=['PEOPLE','SYSTEMS','EXPERIENCE'];
-      labels.forEach((label,i)=>{
-        const x=portrait?pad:pad+i*w*.295, y=portrait?h*.49+i*h*.135:h*.66;
-        ctx.strokeStyle='#6e8981';ctx.lineWidth=2;ctx.strokeRect(x,y,w*(portrait?.85:.255),h*.085);
-        ctx.fillStyle=i===0?'#d4f58c':'#c3d2cb';ctx.font=`${w*.021}px monospace`;ctx.fillText(label,x+w*.025,y+h*.052);
-        if(i<2){ctx.beginPath();if(portrait){ctx.moveTo(w*.5,y+h*.085);ctx.lineTo(w*.5,y+h*.135);}else{ctx.moveTo(x+w*.255,y+h*.042);ctx.lineTo(x+w*.295,y+h*.042);}ctx.stroke();}
-      });
-      ctx.fillStyle='#829b91';ctx.font=`${w*.018}px monospace`;ctx.fillText('UNDERSTAND / CONNECT / BUILD',pad,h*.92);
-    };
-    drawIntent(g,1200,740);
-    const interfaceTextures: THREE.Texture[] = [];
-    const portraitScreen = document.createElement('canvas');portraitScreen.width=900;portraitScreen.height=1200;
-    drawIntent(portraitScreen.getContext('2d')!,900,1200);
-    // Architectural planes extend the aperture into the surrounding space.
+    // Brushed orbital sweeps give the camera a spatial reference without a tiled backdrop.
     const passageField = new THREE.Group();scene.add(passageField);
-    const fieldMaterial = new THREE.LineBasicMaterial({color:0x819e94,transparent:true,opacity:0});
-    for(let n=0;n<3;n++) {
-      const points:number[]=[];
-      for(let x=-18;x<=18;x+=3)points.push(x,-10,0,x,10,0);
-      for(let y=-10;y<=10;y+=3)points.push(-18,y,0,18,y,0);
-      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-      const plane=new THREE.LineSegments(geometry,fieldMaterial);plane.position.z=-4-n*5;passageField.add(plane);
-    }
-    const portraitTextures = [0,1].map(i => { const texture = new THREE.CanvasTexture(portraitScreen); texture.colorSpace=THREE.SRGBColorSpace; texture.repeat.x=.5; texture.offset.x=i*.5; return texture; });
-    const interfaceLayers = [-1, 1].map((side, i) => {
-      const texture = new THREE.CanvasTexture(screen); texture.colorSpace = THREE.SRGBColorSpace;
-      texture.repeat.x = .5; texture.offset.x = i * .5; interfaceTextures.push(texture);
-      const layer = new THREE.Mesh(new THREE.PlaneGeometry(3.08, 3.8), new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true}));
-      layer.position.set(side * 1.54, 0, -.12); interfaceScene.add(layer); return layer;
+    const passageBands = [0,1,2].map(i => {
+      const material = chrome.clone();material.transparent=true;material.opacity=0;
+      const band = new THREE.Mesh(new THREE.TorusGeometry(5.4+i*1.7,.018+i*.007,6,100,Math.PI*1.35),material);
+      band.position.z=-3-i*3.5;band.rotation.set(.3+i*.18,-.25+i*.14,i*2.1);
+      passageField.add(band);return band;
     });
     // The same instanced geometry becomes a signal field, classroom network,
     // distributed ledger, and training waveform as the story progresses.
@@ -183,27 +148,16 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       // layer only after the morph begins made it disappear and then pop back.
       container.style.zIndex = openingExit < 1.05 && !s.reduced && !s.paused ? "4" : "0";
       container.style.opacity = inPassage ? String(1 - THREE.MathUtils.smoothstep(openingExit, .9, 1.05)) : "1";
-      passageField.visible = openingProgress > .45 && openingExit < 1.05;
-      fieldMaterial.opacity = .1 * THREE.MathUtils.smoothstep(openingProgress,.45,.85) * (1-THREE.MathUtils.smoothstep(openingExit,.8,1.05));
-      passageField.position.x = (mobile ? 0 : 3.25) * gateway;
-      passageField.rotation.z = -.06 * (1-flight);
-      interfaceScene.visible = inPassage;
-      interfaceScene.position.set(mobile ? 0 : 3.25, 0.1, 0);
-      interfaceScene.scale.setScalar(mobile ? .63 : .88);
-      // A portrait aperture keeps the same ring and camera journey legible on a phone.
+      passageField.visible = openingProgress > .4 && openingExit < 1.05;
+      const passageOpacity=THREE.MathUtils.smoothstep(openingProgress,.4,.8)*(1-THREE.MathUtils.smoothstep(openingExit,.8,1.05));
+      container.style.setProperty('--passage-light',String(passageOpacity));
+      container.style.setProperty('--passage-title',String(THREE.MathUtils.smoothstep(gateway,.55,.95)*(1-THREE.MathUtils.smoothstep(flight,.02,.42))));
+      passageField.position.x=(mobile?0:3.25)*gateway;
+      passageBands.forEach((band,i)=>{band.material.opacity=passageOpacity*.5;band.rotation.z=i*2.1+flight*.65;band.rotation.x=.3+i*.18-flight*.25;});
+      // Open the ring into a wide lens, then pass through its uninterrupted centre.
       const portrait = phone ? gateway : 0;
-      const apertureX = THREE.MathUtils.lerp(1, .62, portrait);
-      const apertureY = THREE.MathUtils.lerp(1, 1.35, portrait);
-      interfaceScene.scale.x *= apertureX;
-      interfaceScene.scale.y *= apertureY;
-      const separate = THREE.MathUtils.smoothstep(flight, .04, .62);
-      interfaceLayers.forEach((layer, i) => {
-        layer.material.map = phone ? portraitTextures[i] : interfaceTextures[i];
-        const side = i ? 1 : -1;
-        layer.material.opacity = THREE.MathUtils.smoothstep(gateway, .45, 1) * (phone ? 1 - THREE.MathUtils.smoothstep(flight, .18, .45) : 1);
-        layer.position.set(side * (1.54 + separate * (phone ? 0 : 3.8)), separate * (phone ? 0 : i ? -.3 : .3), -.12 - separate * (phone ? 0 : i ? 1.8 : .8));
-        layer.rotation.y = -side * separate * (phone ? 0 : .58);
-      });
+      const apertureX = THREE.MathUtils.lerp(1, .8, portrait);
+      const apertureY = THREE.MathUtils.lerp(1, 1.25, portrait);
       const turn = Math.sin(time * 0.18) * 0.18;
       sculpture.visible = openingExit < (gateway ? 1.05 : 1.35);
       sculpture.scale.setScalar(mobile ? 0.63 : 0.88);
@@ -296,8 +250,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
       const materials = new Set<THREE.Material>(); const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.geometry) geometries.add(mesh.geometry); if (mesh.material) (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(m => materials.add(m)); });
-      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); [...interfaceTextures, ...portraitTextures].forEach(texture => texture.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
+      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); env.dispose(); renderer.dispose(); renderer.domElement.remove();
     };
   }, [state]);
-  return <div ref={host} className="world" aria-hidden="true"><div className="world-fallback">RC<span>FULL-STACK / HUMAN-CENTERED</span></div></div>;
+  return <div ref={host} className="world" aria-hidden="true"><div className="passage-title"><span>01 / THE WAY I WORK</span><strong>MINDSET</strong></div><div className="world-fallback">RC<span>FULL-STACK / HUMAN-CENTERED</span></div></div>;
 }
