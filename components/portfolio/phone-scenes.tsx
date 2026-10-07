@@ -54,7 +54,7 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
 }
 
 const milestones = [
-  { year:"2022", title:"A strong beginning.", fact:"Top 30", unit:"KARNATAKA STATE RANK", text:"II PUC board examination.", icon:GraduationCap },
+  { year:"2022", title:"Beginning the BCA.", fact:"BCA", unit:"JAIN UNIVERSITY / 2022", text:"Started the Bachelor of Computer Applications program.", icon:GraduationCap },
   { year:"2025", title:"Foundations, deeper.", fact:"9.23", unit:"BCA / CGPA OUT OF 10", text:"Jain University. A foundation in computing.", icon:GraduationCap },
   { year:"2025", title:"The next chapter.", fact:"MCA", unit:"CHRIST UNIVERSITY / 2025–27", text:"Continuing to learn. Continuing to build.", icon:GraduationCap },
   { year:"2026", title:"A moment of recognition.", fact:"Winner", unit:"SHELLS’26 / NATIONAL TECH FEST", text:"Overall winner at Kristu Jayanti University.", icon:Trophy },

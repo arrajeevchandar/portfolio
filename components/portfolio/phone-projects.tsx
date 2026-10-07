@@ -3,23 +3,43 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowUpRight, Check, FileText, Fingerprint, Layers, Mic, Sparkles } from "lucide-react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import gsap from "gsap";
+
+export const phoneProjectTitles = [
+  ["Video journaling", "Multimodal analysis", "Reflection dashboard"],
+  ["Classes & attendance", "Assessment tracking", "Participation rewards"],
+  ["Wallet authentication", "Distributed file storage", "Transaction records"],
+  ["Goals & preferences", "Routine generation", "Workout plan"],
+];
 
 const captions = [
-  ["A moment, captured.", "Three signals. One story.", "Space for reflection."],
-  ["Everyone, connected.", "Progress, made clear.", "Participation matters."],
-  ["Your identity. Your control.", "A file with a fingerprint.", "A trail you can verify."],
-  ["Start with your goal.", "A routine built around you.", "Your next step, made clear."],
+  ["Video input", "Speech · voice · visual signals", "Transcript & reflection cards"],
+  ["QR check-in", "Internal assessment", "Student token rewards"],
+  ["MetaMask identity", "IPFS / Pinata storage", "Polygon testnet record"],
+  ["User preferences", "Gemini-generated routine", "Sessions & recovery"],
 ];
 
 /** Compact visual narratives; full product demos remain available in the dialog. */
 export function PhoneProjectVisual({ index, step, onOpen }: { index:number; step:number; onOpen:()=>void }) {
-  return <button className={`phone-project-scene phone-project-${index}`} data-phase={step} onClick={onOpen} aria-label={`Open interactive ${["Solenne","CortexEdu","DoChain","AI Fitness"][index]} demo`}>
-    <span className="phone-project-scene-top"><span>INTERACTIVE STUDY</span><ArrowUpRight size={18}/></span>
+  const host=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{
+    const media=gsap.matchMedia();
+    media.add("(max-width:600px) and (prefers-reduced-motion:no-preference)",()=>{
+      const el=host.current!;
+      if(el.closest('.motion-paused')) return;
+      gsap.registerPlugin(ScrollTrigger);
+      const motion=gsap.fromTo(el.querySelector('.phone-project-art'),{y:12,scale:.98},{y:-12,scale:1.02,ease:'none',scrollTrigger:{trigger:el.closest('.project-story'),start:'top top',end:'bottom bottom',scrub:.25,invalidateOnRefresh:true}});
+      return()=>{motion.scrollTrigger?.kill();motion.kill();};
+    });
+    return()=>media.revert();
+  },[]);
+  return <button ref={host} className={`phone-project-scene phone-project-${index}`} data-phase={step} onClick={onOpen} aria-label={`Open interactive ${["Solenne","CortexEdu","DoChain","AI Fitness"][index]} demo`}>
+    <span className="phone-project-scene-top"><span>0{step+1} / PRODUCT WALKTHROUGH</span><ArrowUpRight size={18}/></span>
     <span className="phone-project-art" aria-hidden="true">
-      {index===0 && <><span className="journal-lens"><i/><i/><i/><span><Mic size={32}/></span></span><span className="journal-signals">{["VOICE","SPEECH","VISUAL"].map((v,i)=><span key={v} style={{"--order":i} as CSSProperties}>{v}<i/></span>)}</span><span className="journal-result"><Sparkles size={19}/><strong>A clearer perspective.</strong><small>Notice. Reflect. Revisit.</small></span></>}
-      {index===1 && <><span className="classroom-sheet"><span className="visual-sheet-label">CORTEX / CLASSROOM</span><strong>One place.<br/>More possibility.</strong><span className="classroom-people">{["R","A","S","+"].map(v=><i key={v}>{v}</i>)}</span><span className="classroom-chart">{[35,62,45,85,70,95].map((h,i)=><i key={i} style={{"--bar":`${h}%`} as CSSProperties}/>)}</span><span className="classroom-reward"><Sparkles size={24}/><strong>Every contribution<br/>counts.</strong></span></span><span className="classroom-status"><Check size={14}/>{["Class connected","Assessment in view","Participation recognized"][step]}</span></>}
+      {index===0 && <><span className="journal-lens"><i/><i/><i/><span><Mic size={32}/></span></span><span className="journal-signals">{["VOICE","SPEECH","VISUAL"].map((v,i)=><span key={v} style={{"--order":i} as CSSProperties}>{v}<i/></span>)}</span><span className="journal-result"><Sparkles size={19}/><strong>Journal summary</strong><small>Transcript and reflection cards.</small></span></>}
+      {index===1 && <><span className="classroom-sheet"><span className="visual-sheet-label">CORTEX / CLASSROOM</span><strong>Software<br/>Engineering</strong><span className="classroom-people">{["R","A","S","+"].map(v=><i key={v}>{v}</i>)}</span><span className="classroom-chart">{[35,62,45,85,70,95].map((h,i)=><i key={i} style={{"--bar":`${h}%`} as CSSProperties}/>)}</span><span className="classroom-reward"><Sparkles size={24}/><strong>Participation<br/>tokens</strong></span></span><span className="classroom-status"><Check size={14}/>{["Class check-in","Assessment overview","Token reward system"][step]}</span></>}
       {index===2 && <><span className="document-halo"/><span className="chain-document"><span className="visual-sheet-label">DOC / 001</span><FileText size={35}/><strong>document.pdf</strong><span className="document-lines"><i/><i/><i/></span><span className="document-seal"><Check size={24}/></span></span><span className="chain-stations"><span><Fingerprint size={19}/>Identity</span><span><Layers size={19}/>Storage</span><span><Check size={19}/>Proof</span></span></>}
-      {index===3 && <><span className="fitness-dial"><i/><span><strong>{["YOU","PLAN","GO"][step]}</strong><small>{["THE STARTING POINT","BUILT FROM CONTEXT","YOUR NEXT CHAPTER"][step]}</small></span></span><span className="fitness-routes">{["Movement","Strength","Recovery"].map((v,i)=><span key={v}><i>0{i+1}</i>{v}<Check size={14}/></span>)}</span></>}
+      {index===3 && <><span className="fitness-dial"><i/><span><strong>{["GOAL","PLAN","VIEW"][step]}</strong><small>{["USER PREFERENCES","GENERATED ROUTINE","SESSION OVERVIEW"][step]}</small></span></span><span className="fitness-routes">{["Movement","Strength","Recovery"].map((v,i)=><span key={v}><i>0{i+1}</i>{v}<Check size={14}/></span>)}</span></>}
     </span>
     <span className="phone-project-scene-bottom"><strong>{captions[index][step]}</strong><span>EXPLORE THE DEMO <ArrowUpRight size={12}/></span></span>
   </button>;
