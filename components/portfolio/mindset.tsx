@@ -48,9 +48,8 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
         const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; } });
         arrival.set(".mindset-surface", { opacity: 1 }, 0)
           .set(".mindset-shell", { opacity: 1 }, 0)
-          .fromTo(".mindset-sticky", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: .45, ease: "power2.inOut" }, 0)
-          .fromTo(".mindset-shell", { y: 24 }, { y: 0, duration: .45, ease: "power2.out" }, 0)
-          .to({}, { duration: .55 }, .45);
+          .set(".mindset-shell", { y: 0 }, 0)
+          .to({}, { duration: 1 }, 0);
         const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);

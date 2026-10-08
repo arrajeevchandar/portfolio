@@ -74,7 +74,9 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     }
     knotGeometry.morphAttributes.position.push(new THREE.BufferAttribute(coilPositions,3));
     knotGeometry.morphAttributes.normal.push(new THREE.BufferAttribute(coilNormals,3));
-    const knot = new THREE.Mesh(knotGeometry, chrome); sculpture.add(knot);
+    const sculptureMaterial = chrome.clone();
+    sculptureMaterial.transparent = true;
+    const knot = new THREE.Mesh(knotGeometry, sculptureMaterial); sculpture.add(knot);
     const systemNodes = Array.from({ length: 4 }, () => {
       const node = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 1), acid);
       sculpture.add(node); return node;
@@ -85,6 +87,10 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
+    const portal = new THREE.Mesh(new THREE.TorusGeometry(2.15,.22,22,180),chrome);
+    scene.add(portal);
+    const portalCenter = new THREE.Vector3();
+    const destination = document.querySelector<HTMLElement>('.mindset-sticky');
     // The same instanced geometry becomes a signal field, classroom network,
     // distributed ledger, and training waveform as the story progresses.
     const count = innerWidth < 800 ? 240 : 520;
@@ -158,7 +164,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       container.style.opacity='1';
       container.style.setProperty('--passage-light',String(.65 * flight));
       container.style.setProperty('--passage-title','0');
-      const settle=THREE.MathUtils.smoothstep(flight,.35,1);
+      const settle=THREE.MathUtils.smootherstep(flight,0,.72);
       const mind=s.mindsetProgress??0;
       const layerBeat=THREE.MathUtils.smoothstep(mind,.22,.4)*(1-THREE.MathUtils.smoothstep(mind,.58,.8));
       // Open the ring into a wide lens, then pass through its uninterrupted centre.
@@ -197,6 +203,15 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         knot.morphTargetInfluences![2]=layerBeat*settle;
       }
       knot.scale.setScalar(1);
+      sculptureMaterial.opacity = 1;
+      // The entrance ring passes the lens; the destination sculpture is a
+      // separate depth layer, revealed only once the aperture fills the view.
+      if (connected && flight > 0) {
+        sculpture.visible = true;
+        sculpture.scale.multiplyScalar(.45+.55*settle);
+        knot.morphTargetInfluences![0] = 0;
+        sculptureMaterial.opacity = THREE.MathUtils.smootherstep(flight,0,.14);
+      }
       systemNodes.forEach((node, i) => {
         const a = i * Math.PI / 2 + Math.PI / 4;
         node.position.set(Math.cos(a) * 2.15, Math.sin(a) * 2.15, 0.24);
@@ -207,7 +222,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         const arcMaterial = arc.material as THREE.MeshPhysicalMaterial;
         arcMaterial.transparent = true;
         const openingOpacity = phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1;
-        arcMaterial.opacity = THREE.MathUtils.lerp(openingOpacity, .25, settle);
+        arcMaterial.opacity = openingOpacity*(1-gateway) + .25*THREE.MathUtils.smootherstep(flight,.72,1);
         arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
@@ -256,8 +271,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       lines.visible = nodeVisibility; lineGeometry.attributes.position.needsUpdate = true;
       // A deterministic dolly, with zero velocity at both ends. Do not lerp
       // yesterday's camera towards a second target: that jumps on reversal.
-      const travel = connected ? Math.pow(Math.sin(flight*Math.PI),2)*.55 : 0;
-      const align = connected ? THREE.MathUtils.smootherstep(flight,0,.35)*(1-settle) : 0;
+      const travel = 0;
+      const align = 0;
       const pointerWeight = (1-gateway) * (s.reduced ? 0 : 1);
       cameraPointer.x += (s.pointer.x*.35-cameraPointer.x)*ease;
       cameraPointer.y += (-s.pointer.y*.25-cameraPointer.y)*ease;
@@ -266,10 +281,24 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, 4, travel);
       camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
       world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1-gateway);
+      portal.visible = connected && flight > 0 && flight < .72;
+      if (connected) {
+        const advance = THREE.MathUtils.smootherstep(flight,0,.72);
+        portal.scale.setScalar(mobile ? .63 : .88);
+        portal.position.set((mobile ? 0 : 3.25)*(1-advance), .1*(1-advance), camera.position.z*advance);
+        camera.updateMatrixWorld();
+        portalCenter.copy(portal.position);
+        portalCenter.z = Math.min(portalCenter.z,camera.position.z-.01);
+        portalCenter.project(camera);
+        const depth = Math.max(.01,camera.position.z-portal.position.z);
+        const radius = 1.92*portal.scale.x/depth/(2*Math.tan(THREE.MathUtils.degToRad(19)))*container.clientHeight;
+        if (destination) destination.style.clipPath = flight >= .7 ? 'none' : flight === 0 ? 'circle(0px at 50% 50%)' : `circle(${Math.min(radius,Math.hypot(innerWidth,innerHeight)*2)}px at ${(portalCenter.x*.5+.5)*innerWidth}px ${(-portalCenter.y*.5+.5)*innerHeight}px)`;
+      } else if(destination) destination.style.clipPath = s.paused||s.reduced||openingExit>=1 ? 'none' : 'circle(0px at 50% 50%)';
       renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(tick);
     return () => {
+      if(destination) destination.style.removeProperty('clip-path');
 
       cancelAnimationFrame(raf); resizeObserver.disconnect(); document.removeEventListener("visibilitychange", visibility);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
