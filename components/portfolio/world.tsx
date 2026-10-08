@@ -112,6 +112,11 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     const colors = ["#d3ff40", "#d3ff40", "#c1abff", "#c7ff65", "#8dd8ff", "#ffad77", "#d3ff40"];
     let raf = 0, time = 0, lastTime = 0, hidden = document.hidden, lost = false;
     let chapter = 0, progress = 0, explosion = 0, openingProgress = 0, openingExit = 0;
+    const destinationPosition = new THREE.Vector3(), destinationScale = new THREE.Vector3();
+    const cameraPointer = new THREE.Vector2();
+    const about = document.getElementById('about');
+    const phoneStage = document.querySelector('.orbital-stage');
+    const desktopStage = document.querySelector('.mindset-studio');
     const resize = () => { const w = container.clientWidth, h = container.clientHeight; renderer.setSize(w, h); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix(); };
     const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container); resize();
     const visibility = () => { hidden = document.hidden; };
@@ -146,13 +151,12 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const inPassage = gateway > 0 && openingExit < 1.05;
       // Keep the ring above the incoming surface from the start. Changing its
       // layer only after the morph begins made it disappear and then pop back.
-      const about=document.getElementById('about');
-      const stage=document.querySelector(phone?'.orbital-stage':'.mindset-studio');
+      const stage=phone?phoneStage:desktopStage;
       const stageRect=stage?.getBoundingClientRect();
       const connected=!s.paused&&!s.reduced&&!!stageRect&&stageRect.height>0&&openingProgress>.75&&(about?.getBoundingClientRect().bottom??0)>0;
       container.style.zIndex=connected||openingExit<1.05?'4':'0';
       container.style.opacity='1';
-      container.style.setProperty('--passage-light',String(connected?.65:0));
+      container.style.setProperty('--passage-light',String(.65 * flight));
       container.style.setProperty('--passage-title','0');
       const settle=THREE.MathUtils.smoothstep(flight,.35,1);
       const mind=s.mindsetProgress??0;
@@ -183,8 +187,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         const tx=((stageRect.left+stageRect.width/2)/innerWidth-.5)*fullHeight*camera.aspect;
         const ty=(.5-(stageRect.top+stageRect.height/2)/innerHeight)*fullHeight;
         const scale=Math.min(stageRect.width,stageRect.height)*.85/innerHeight*fullHeight/5.2;
-        sculpture.position.lerp(new THREE.Vector3(tx,ty,0),settle);
-        sculpture.scale.lerp(new THREE.Vector3(scale,scale,scale),settle);
+        sculpture.position.lerp(destinationPosition.set(tx,ty,0),settle);
+        sculpture.scale.lerp(destinationScale.set(scale,scale,scale),settle);
         sculpture.rotation.x=THREE.MathUtils.lerp(sculpture.rotation.x,.35+mind*.7,settle);
         sculpture.rotation.y=THREE.MathUtils.lerp(sculpture.rotation.y,-.3+mind*1.7,settle);
         sculpture.rotation.z=THREE.MathUtils.lerp(sculpture.rotation.z,-.18+mind*.35,settle);
@@ -202,7 +206,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         arc.visible = gateway < 0.99 || connected;
         const arcMaterial = arc.material as THREE.MeshPhysicalMaterial;
         arcMaterial.transparent = true;
-        arcMaterial.opacity = connected ? THREE.MathUtils.lerp(1,.25,settle) : (phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1);
+        const openingOpacity = phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1;
+        arcMaterial.opacity = THREE.MathUtils.lerp(openingOpacity, .25, settle);
         arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
@@ -212,7 +217,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const mode = Math.round(chapter);
       const cloudScale = Math.min(Math.max(chapter - 0.9, 0), 1);
       const right = mobile ? 0 : 1.9;
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; blocks.visible && i < count; i++) {
         const t = i / count, a = t * Math.PI * 2 * 8;
         let x = 0, y = 0, z = 0;
         if (mode === 2) { // Multimodal signals braid into a common representation.
@@ -236,7 +241,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         dummy.scale.setScalar((0.7 + Math.sin(i * 1.7) * 0.3) * cloudScale);
         dummy.updateMatrix(); blocks.setMatrixAt(i, dummy.matrix);
       }
-      blocks.instanceMatrix.needsUpdate = true;
+      if (blocks.visible) blocks.instanceMatrix.needsUpdate = true;
       const nodeVisibility = s.chapter < 6 && (mode === 3 || mode === 4);
       nodes.forEach((node, i) => {
         const a = (i / 8) * Math.PI * 2 + time * 0.09;
@@ -249,17 +254,18 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         linePositions.set([p.x, p.y, p.z, nodes[next].position.x, nodes[next].position.y, nodes[next].position.z], i * 6);
       });
       lines.visible = nodeVisibility; lineGeometry.attributes.position.needsUpdate = true;
-      camera.position.x += ((s.reduced ? 0 : s.pointer.x * 0.35) - camera.position.x) * ease;
-      camera.position.y += ((s.reduced ? 0 : -s.pointer.y * 0.25) - camera.position.y) * ease;
-      // Reset the camera behind the opaque destination, after the foreground
-      // has faded away, so particles cannot visibly jump at the section seam.
-      const travel = connected ? Math.sin(flight*Math.PI)*.55 : 0;
-      const align = connected ? gateway*(1-settle) : 0;
-      camera.position.x = THREE.MathUtils.lerp(camera.position.x, mobile ? 0 : 3.25, align);
-      camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.1, align);
+      // A deterministic dolly, with zero velocity at both ends. Do not lerp
+      // yesterday's camera towards a second target: that jumps on reversal.
+      const travel = connected ? Math.pow(Math.sin(flight*Math.PI),2)*.55 : 0;
+      const align = connected ? THREE.MathUtils.smootherstep(flight,0,.35)*(1-settle) : 0;
+      const pointerWeight = (1-gateway) * (s.reduced ? 0 : 1);
+      cameraPointer.x += (s.pointer.x*.35-cameraPointer.x)*ease;
+      cameraPointer.y += (-s.pointer.y*.25-cameraPointer.y)*ease;
+      camera.position.x = cameraPointer.x*pointerWeight + (mobile ? 0 : 3.25)*align;
+      camera.position.y = cameraPointer.y*pointerWeight + .1*align;
       camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, 4, travel);
       camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
-      world.rotation.z = connected ? 0 : Math.sin(time * 0.12) * 0.035 * (1 - align);
+      world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1-gateway);
       renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(tick);

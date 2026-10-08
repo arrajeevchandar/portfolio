@@ -115,7 +115,7 @@ export default function Home() {
         const opening = el.querySelector<HTMLElement>(".opening");
         if (!opening) return;
         // Desktop arrival owns the shared camera/DOM clock in Mindset.
-        if ((innerWidth <= 900 && innerHeight < 600) || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
+        if (!matchMedia("(min-width:901px), (min-height:600px), (max-width:600px) and (min-height:500px)").matches || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
         if (paused || reduced) scene.current.openingProgress = 0;
       };
       ScrollTrigger.create({ start: 0, end: "max", onRefresh: syncOpening, onUpdate: self => { syncOpening(); el.style.setProperty("--page-progress", String(self.progress)); const readout = el.querySelector(".progress-number"); if (readout) readout.textContent = `${Math.round(self.progress * 100)}`.padStart(2, "0"); } });

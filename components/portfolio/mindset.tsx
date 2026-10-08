@@ -45,10 +45,10 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
         // The destination is held by native sticky positioning throughout arrival.
         // One scrubbed clock drives both the camera and DOM: no translated sticky
         // element or independent scroll lag to create a jump at the handoff.
-        const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true, onRefresh: self => { scene.current.openingExit = self.progress * 1.1; } } });
+        const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; } });
         arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
           .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: .45, ease: "power2.out" }, .45);
-        const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
+        const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
           if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
@@ -58,6 +58,16 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           if (i < 2) story.to(plate, phone ? { z: 30, x: 0, y: -28, rotateY: 0, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
         });
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
+        // Arrival, form and copy share one scrubbed playhead, including when
+        // rapidly reversing across the section boundary.
+        const storyDuration = () => Math.max(.1, element.offsetHeight / innerHeight - 2);
+        arrival.duration(1);
+        story.duration(storyDuration());
+        gsap.timeline({ scrollTrigger: {
+          trigger: element, start: "top top", end: "bottom bottom", scrub: .5,
+          invalidateOnRefresh: true,
+          onRefreshInit: () => { story.duration(storyDuration()); },
+        } }).add(arrival, 0).add(story, 1);
         gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });
         gsap.fromTo(".work-index .index-heading", { y: 90 }, { y: 0, scrollTrigger: { trigger: ".work-index", start: "top bottom", end: "top 20%", scrub: 0.5 } });
         gsap.fromTo(".index-item", { y: 60, opacity: 0.2 }, { y: 0, opacity: 1, stagger: 0.08, scrollTrigger: { trigger: ".project-index-list", start: "top 95%", end: "top 40%", scrub: 0.4 } });
@@ -73,8 +83,8 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
   const jump = (index: number) => {
     const el = host.current;
     if (!el) return;
-    setActive(index);
     const pinned = !staticMotion && matchMedia("(min-width: 901px), (min-height: 600px), (max-width:600px) and (min-height:500px)").matches;
+    if (!pinned) setActive(index);
     const target = pinned ? el : el.querySelectorAll<HTMLElement>(".mindset-beat")[index];
     if (!target) return;
     const offset = pinned ? innerHeight + (el.offsetHeight - innerHeight * 2) * ((index + 0.4) / 3) : -100;
