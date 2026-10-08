@@ -36,6 +36,39 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     const chrome = new THREE.MeshPhysicalMaterial({ color: 0x8d9581, metalness: 0.97, roughness: 0.3, clearcoat: 0.65, clearcoatRoughness: 0.25, envMapIntensity: 1.1 });
     const acid = new THREE.MeshStandardMaterial({ color: 0xccff00, metalness: 0.45, roughness: 0.28, emissive: 0x5f7700, emissiveIntensity: 0.55 });
     const sculpture = new THREE.Group();
+    // Preview the actual destination within the aperture. It travels with the
+    // frame, then yields to the live mindset content before the frame unfolds.
+    const previewCanvas = document.createElement('canvas');
+    previewCanvas.width = 1024; previewCanvas.height = 640;
+    const previewTexture = new THREE.CanvasTexture(previewCanvas);
+    previewTexture.colorSpace = THREE.SRGBColorSpace;
+    const previewMaterial = new THREE.MeshBasicMaterial({ map: previewTexture, transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+    const preview = new THREE.Mesh(new THREE.PlaneGeometry(4.9, 3.06), previewMaterial);
+    preview.position.z = -.06;
+    sculpture.add(preview);
+    let disposed = false;
+    const drawPreview = () => {
+      if (disposed) return;
+      const ctx = previewCanvas.getContext('2d');
+      if (!ctx) return;
+      const phone = innerWidth <= 600;
+      const styles = getComputedStyle(container);
+      const display = styles.getPropertyValue('--display').trim() || 'sans-serif';
+      const mono = styles.getPropertyValue('--mono').trim() || 'monospace';
+      ctx.clearRect(0,0,1024,640);
+      ctx.fillStyle = '#a6b297'; ctx.font = `${phone ? 32 : 26}px ${mono}`;
+      ctx.fillText('01 / THE MINDSET', 60, 112);
+      ctx.fillStyle = '#eef1e6'; ctx.font = `500 ${phone ? 136 : 110}px ${display}`;
+      ctx.fillText(phone ? 'Begin with' : 'Understand', 60, 272);
+      ctx.fillText(phone ? 'a need.' : 'the person.', 60, 372);
+      ctx.fillStyle = '#bac4b1'; ctx.font = `${phone ? 36 : 32}px sans-serif`;
+      ctx.fillText('Understand what someone',60,474);
+      ctx.fillText('is trying to do.',60,514);
+      ctx.strokeStyle = '#748266'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(60,564); ctx.lineTo(964,564); ctx.stroke();
+      previewTexture.needsUpdate = true;
+    };
+    drawPreview(); document.fonts.ready.then(drawPreview);
     const knotGeometry = new THREE.TorusKnotGeometry(1.6, 0.36, 180, 22, 2, 3);
     // Preserve vertex identity: the same surface untangles into the system ring.
     // Morph normals with positions so the metallic lighting follows the surface.
@@ -117,7 +150,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     const about = document.getElementById('about');
     const phoneStage = document.querySelector('.orbital-stage');
     const desktopStage = document.querySelector('.mindset-studio');
-    const resize = () => { const w = container.clientWidth, h = container.clientHeight; renderer.setSize(w, h); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix(); };
+    const resize = () => { const w = container.clientWidth, h = container.clientHeight; renderer.setSize(w, h); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix(); drawPreview(); };
     const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container); resize();
     const visibility = () => { hidden = document.hidden; };
     const contextLost = (event: Event) => { event.preventDefault(); lost = true; container.dataset.renderer = "fallback"; };
@@ -159,6 +192,8 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       container.style.setProperty('--passage-light',String(.65 * flight));
       container.style.setProperty('--passage-title','0');
       const settle=THREE.MathUtils.smoothstep(flight,.35,1);
+      previewMaterial.opacity = THREE.MathUtils.smoothstep(gateway,.08,.45) * (1-THREE.MathUtils.smoothstep(flight,.25,.56));
+      preview.visible = previewMaterial.opacity > .001;
       const mind=s.mindsetProgress??0;
       const layerBeat=THREE.MathUtils.smoothstep(mind,.22,.4)*(1-THREE.MathUtils.smoothstep(mind,.58,.8));
       // Open the ring into a wide lens, then pass through its uninterrupted centre.
@@ -270,6 +305,7 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     };
     raf = requestAnimationFrame(tick);
     return () => {
+      disposed = true; previewTexture.dispose();
       cancelAnimationFrame(raf); resizeObserver.disconnect(); document.removeEventListener("visibilitychange", visibility);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
       const materials = new Set<THREE.Material>(); const geometries = new Set<THREE.BufferGeometry>();

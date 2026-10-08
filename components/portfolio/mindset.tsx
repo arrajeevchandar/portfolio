@@ -47,7 +47,8 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
         // element or independent scroll lag to create a jump at the handoff.
         const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; } });
         arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
-          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: .45, ease: "power2.out" }, .45);
+          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: .55, ease: "power2.out" }, .15)
+          .to({}, { duration: .3 }, .7);
         const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
