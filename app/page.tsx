@@ -127,7 +127,7 @@ export default function Home() {
           .fromTo(".hero-side, .hero-description, .hero-meta, .sculpture-controls", { y: 0, opacity: 1 }, { y: -30, opacity: 0, duration: 0.2 }, 0.02)
           .fromTo(".opening-next", { y: 45, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: "power2.out" }, 0.38)
           .fromTo(".system-caption", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.16 }, 0.68)
-          .to(".opening-next, .system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
+          .to(".system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
           .to({}, { duration: 0.16 }, 0.84);
         gsap.utils.toArray<HTMLElement>(".project-story").forEach(project => {
           gsap.fromTo(project.querySelector(".demo-motion"), { rotateY: () => innerWidth <= 600 ? -3 : -12, rotateZ: () => innerWidth <= 600 ? 0 : -3, y: () => innerWidth <= 600 ? 14 : 45 }, { rotateY: () => innerWidth <= 600 ? 3 : 9, rotateZ: () => innerWidth <= 600 ? 0 : 2, y: () => innerWidth <= 600 ? -8 : -22, ease: "none", scrollTrigger: { trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: "bottom bottom", scrub: true, invalidateOnRefresh: true } });
