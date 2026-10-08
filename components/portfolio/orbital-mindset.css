@@ -56,3 +56,10 @@
 @media(max-width:600px){.passage-title{gap:12px}.passage-title>span{font-size:7px}.passage-title>strong{font-size:clamp(43px,14vw,70px)}}
 
 .mindset-orbital[data-still=true] .band-one{transform:rotate(-55deg);transform-origin:180px 180px}.mindset-orbital[data-still=true] .band-two{transform:rotate(55deg);transform-origin:180px 180px}
+/* The home WebGL sculpture owns the entire introduction-to-mindset journey. */
+.portfolio:not(.motion-paused):not(.reduced-motion):has(.world[data-renderer=webgl]) .orbital-sculpture{visibility:hidden}
+.portfolio:not(.motion-paused):not(.reduced-motion):has(.world[data-renderer=webgl]) .mindset-studio .mindset-plate{visibility:hidden}
+.portfolio .mindset-surface{background:#121813!important;background-image:none!important}
+.portfolio .mindset-chapter{background:transparent!important;background-image:none!important}
+.passage-title{display:none}
+.world:before{background:radial-gradient(ellipse at 68% 46%,#b9cc9610,transparent 60%)}

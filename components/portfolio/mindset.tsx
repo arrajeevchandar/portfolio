@@ -47,8 +47,8 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
         // element or independent scroll lag to create a jump at the handoff.
         const arrival = gsap.timeline({ onUpdate: () => { scene.current.openingExit = arrival.progress() * 1.1; }, scrollTrigger: { trigger: element, start: "top top", end: "top -100%", scrub: 0.45, invalidateOnRefresh: true, onRefresh: self => { scene.current.openingExit = self.progress * 1.1; } } });
         arrival.fromTo(".mindset-surface", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "none" }, 0)
-          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: phone ? .18 : 0.65, ease: "power2.out" }, phone ? .82 : 0.35);
-        const story = gsap.timeline({ onUpdate: () => { setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
+          .fromTo(".mindset-shell", { opacity: 0 }, { opacity: 1, duration: .45, ease: "power2.out" }, .45);
+        const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); }, scrollTrigger: { trigger: element, start: "top -100%", end: "bottom bottom", scrub: 0.65 } });
         panels.forEach((panel, i) => {
           if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
           if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
@@ -57,19 +57,6 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           if (i) story.fromTo(plate, phone ? { z: -60, x: 0, y: 28, rotateY: 0, opacity: 0 } : { z: -650, x: 100, rotateY: -12, opacity: 0 }, phone ? { z: 0, x: 0, y: 0, rotateY: 0, opacity: 1, duration: 0.16, ease: "power2.inOut" } : { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
           if (i < 2) story.to(plate, phone ? { z: 30, x: 0, y: -28, rotateY: 0, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
         });
-        if (phone) {
-          gsap.set('.orbital-band',{svgOrigin:'180 180'});
-          gsap.set('.band-one',{rotation:-55});gsap.set('.band-two',{rotation:55});gsap.set('.band-three',{rotation:0});
-          // One continuous assembly, driven by the same scrubbed story clock.
-          story.to('.band-one',{rotation:0,y:-47,scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
-            .to('.band-two',{rotation:0,y:47,scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
-            .to('.band-three',{scaleY:.6,duration:.22,ease:'power2.inOut'},.22)
-            .to('.orbital-sculpture',{scale:.9,rotation:0,duration:.22},.22)
-            .to('.band-one',{rotation:-35,y:0,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
-            .to('.band-two',{rotation:35,y:0,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
-            .to('.band-three',{rotation:90,scaleY:1,duration:.24,ease:'power2.inOut'},.58)
-            .to('.orbital-guide',{rotation:140,svgOrigin:'180 180',duration:1,ease:'none'},0);
-        }
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
         gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });
         gsap.fromTo(".work-index .index-heading", { y: 90 }, { y: 0, scrollTrigger: { trigger: ".work-index", start: "top bottom", end: "top 20%", scrub: 0.5 } });

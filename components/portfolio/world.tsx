@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-export type SceneState = { chapter: number; progress: number; openingProgress: number; openingExit: number; paused: boolean; reduced: boolean; exploded: boolean; pointer: { x: number; y: number }; };
+export type SceneState = { chapter: number; progress: number; openingProgress: number; openingExit: number; mindsetProgress?: number; paused: boolean; reduced: boolean; exploded: boolean; pointer: { x: number; y: number }; };
 
 export default function World({ state }: { state: RefObject<SceneState> }) {
   const host = useRef<HTMLDivElement>(null);
@@ -66,6 +66,14 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     }
     knotGeometry.morphAttributes.position = [new THREE.BufferAttribute(ringPositions, 3), new THREE.BufferAttribute(framePositions, 3)];
     knotGeometry.morphAttributes.normal = [new THREE.BufferAttribute(ringNormals, 3), new THREE.BufferAttribute(frameNormals, 3)];
+    const coilPositions=new Float32Array(sourcePositions.count*3),coilNormals=new Float32Array(sourcePositions.count*3);
+    for(let i=0;i<sourcePositions.count;i++){
+      const u=uv.getX(i)*Math.PI*2,v=uv.getY(i)*Math.PI*2,a=u*3;
+      const n=new THREE.Vector3(Math.cos(a)*Math.cos(v),Math.sin(v),Math.sin(a)*Math.cos(v));
+      coilPositions.set([Math.cos(a)*1.9+n.x*.14,Math.cos(u)*1.5+n.y*.14,Math.sin(a)*1.9+n.z*.14],i*3);coilNormals.set(n.toArray(),i*3);
+    }
+    knotGeometry.morphAttributes.position.push(new THREE.BufferAttribute(coilPositions,3));
+    knotGeometry.morphAttributes.normal.push(new THREE.BufferAttribute(coilNormals,3));
     const knot = new THREE.Mesh(knotGeometry, chrome); sculpture.add(knot);
     const systemNodes = Array.from({ length: 4 }, () => {
       const node = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 1), acid);
@@ -77,14 +85,6 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
-    // Brushed orbital sweeps give the camera a spatial reference without a tiled backdrop.
-    const passageField = new THREE.Group();scene.add(passageField);
-    const passageBands = [0,1,2].map(i => {
-      const material = chrome.clone();material.transparent=true;material.opacity=0;
-      const band = new THREE.Mesh(new THREE.TorusGeometry(5.4+i*1.7,.018+i*.007,6,100,Math.PI*1.35),material);
-      band.position.z=-3-i*3.5;band.rotation.set(.3+i*.18,-.25+i*.14,i*2.1);
-      passageField.add(band);return band;
-    });
     // The same instanced geometry becomes a signal field, classroom network,
     // distributed ledger, and training waveform as the story progresses.
     const count = innerWidth < 800 ? 240 : 520;
@@ -146,20 +146,23 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const inPassage = gateway > 0 && openingExit < 1.05;
       // Keep the ring above the incoming surface from the start. Changing its
       // layer only after the morph begins made it disappear and then pop back.
-      container.style.zIndex = openingExit < 1.05 && !s.reduced && !s.paused ? "4" : "0";
-      container.style.opacity = inPassage ? String(1 - THREE.MathUtils.smoothstep(openingExit, .9, 1.05)) : "1";
-      passageField.visible = openingProgress > .4 && openingExit < 1.05;
-      const passageOpacity=THREE.MathUtils.smoothstep(openingProgress,.4,.8)*(1-THREE.MathUtils.smoothstep(openingExit,.8,1.05));
-      container.style.setProperty('--passage-light',String(passageOpacity));
-      container.style.setProperty('--passage-title',String(THREE.MathUtils.smoothstep(gateway,.55,.95)*(1-THREE.MathUtils.smoothstep(flight,.02,.42))));
-      passageField.position.x=(mobile?0:3.25)*gateway;
-      passageBands.forEach((band,i)=>{band.material.opacity=passageOpacity*.5;band.rotation.z=i*2.1+flight*.65;band.rotation.x=.3+i*.18-flight*.25;});
+      const about=document.getElementById('about');
+      const stage=document.querySelector(phone?'.orbital-stage':'.mindset-studio');
+      const stageRect=stage?.getBoundingClientRect();
+      const connected=!s.paused&&!s.reduced&&!!stageRect&&stageRect.height>0&&openingProgress>.75&&(about?.getBoundingClientRect().bottom??0)>0;
+      container.style.zIndex=connected||openingExit<1.05?'4':'0';
+      container.style.opacity='1';
+      container.style.setProperty('--passage-light',String(connected?.65:0));
+      container.style.setProperty('--passage-title','0');
+      const settle=THREE.MathUtils.smoothstep(flight,.35,1);
+      const mind=s.mindsetProgress??0;
+      const layerBeat=THREE.MathUtils.smoothstep(mind,.22,.4)*(1-THREE.MathUtils.smoothstep(mind,.58,.8));
       // Open the ring into a wide lens, then pass through its uninterrupted centre.
       const portrait = phone ? gateway : 0;
       const apertureX = THREE.MathUtils.lerp(1, .8, portrait);
       const apertureY = THREE.MathUtils.lerp(1, 1.25, portrait);
       const turn = Math.sin(time * 0.18) * 0.18;
-      sculpture.visible = openingExit < (gateway ? 1.05 : 1.35);
+      sculpture.visible = connected || openingExit < (gateway ? 1.05 : 1.35);
       sculpture.scale.setScalar(mobile ? 0.63 : 0.88);
       sculpture.scale.x *= apertureX;
       sculpture.scale.y *= apertureY;
@@ -174,6 +177,21 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       sculpture.position.set(mobile ? 0 : 3.25, THREE.MathUtils.lerp(mobile ? -0.8 - unfold * 0.7 : 0.1, 0.1, gateway) + openingExit * viewHeight * (1 - gateway) - (1 - entrance) * 0.5, 0);
       knot.morphTargetInfluences![0] = unfold * (1 - gateway);
       knot.morphTargetInfluences![1] = gateway;
+      knot.morphTargetInfluences![2]=0;
+      if(connected&&stageRect){
+        const fullHeight=2*Math.tan(THREE.MathUtils.degToRad(19))*(mobile?17:13);
+        const tx=((stageRect.left+stageRect.width/2)/innerWidth-.5)*fullHeight*camera.aspect;
+        const ty=(.5-(stageRect.top+stageRect.height/2)/innerHeight)*fullHeight;
+        const scale=Math.min(stageRect.width,stageRect.height)*.85/innerHeight*fullHeight/5.2;
+        sculpture.position.lerp(new THREE.Vector3(tx,ty,0),settle);
+        sculpture.scale.lerp(new THREE.Vector3(scale,scale,scale),settle);
+        sculpture.rotation.x=THREE.MathUtils.lerp(sculpture.rotation.x,.35+mind*.7,settle);
+        sculpture.rotation.y=THREE.MathUtils.lerp(sculpture.rotation.y,-.3+mind*1.7,settle);
+        sculpture.rotation.z=THREE.MathUtils.lerp(sculpture.rotation.z,-.18+mind*.35,settle);
+        knot.morphTargetInfluences![0]*=1-settle;
+        knot.morphTargetInfluences![1]*=1-settle;
+        knot.morphTargetInfluences![2]=layerBeat*settle;
+      }
       knot.scale.setScalar(1);
       systemNodes.forEach((node, i) => {
         const a = i * Math.PI / 2 + Math.PI / 4;
@@ -181,10 +199,10 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
         node.scale.setScalar(THREE.MathUtils.smoothstep(unfold, 0.65, 1) * (1 - gateway));
       });
       arcs.forEach((arc, i) => {
-        arc.visible = gateway < 0.99;
+        arc.visible = gateway < 0.99 || connected;
         const arcMaterial = arc.material as THREE.MeshPhysicalMaterial;
-        arcMaterial.transparent = phone;
-        arcMaterial.opacity = phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1;
+        arcMaterial.transparent = true;
+        arcMaterial.opacity = connected ? THREE.MathUtils.lerp(1,.25,settle) : (phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1);
         arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
@@ -235,13 +253,13 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       camera.position.y += ((s.reduced ? 0 : -s.pointer.y * 0.25) - camera.position.y) * ease;
       // Reset the camera behind the opaque destination, after the foreground
       // has faded away, so particles cannot visibly jump at the section seam.
-      const travel = inPassage ? flight : 0;
-      const align = inPassage ? gateway : 0;
+      const travel = connected ? Math.sin(flight*Math.PI)*.55 : 0;
+      const align = connected ? gateway*(1-settle) : 0;
       camera.position.x = THREE.MathUtils.lerp(camera.position.x, mobile ? 0 : 3.25, align);
       camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.1, align);
-      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, phone ? -2.5 : -5, travel);
+      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, 4, travel);
       camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
-      world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1 - align);
+      world.rotation.z = connected ? 0 : Math.sin(time * 0.12) * 0.035 * (1 - align);
       renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(tick);
