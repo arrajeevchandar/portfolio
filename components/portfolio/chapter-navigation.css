@@ -1,0 +1,51 @@
+/* Keep the dark directory legible in its neutral state, including on touch. */
+.chapter-directory .chapter-door-face { border-color: #c4d1be38; }
+.chapter-directory .door-type > span { color: #c0c6bc; opacity: 1; }
+.chapter-directory .chapter-door[data-active=true] .door-type > span { color: #454b43; opacity: 1; }
+.chapter-directory .chapter-door:focus-visible { outline: 2px solid #caff40; outline-offset: -2px !important; z-index: 1; }
+.chapter-directory .chapter-door:active .door-arrow { transform: translate(2px,-2px); }
+.chapter-directory .chapter-door[data-active=false] .door-aperture { color: #bed2a8; opacity: .58; }
+.chapter-directory .chapter-door-face::after { pointer-events: none; }
+.chapter-directory .chapter-canvas { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+
+@media (max-width:900px) {
+  .chapter-directory .chapter-rail {
+    min-height: 354px;
+    grid-template-rows: repeat(6,minmax(54px,1fr));
+  }
+  .chapter-directory .chapter-door-face {
+    display: grid;
+    grid-template-columns: 2ch minmax(0,1fr) clamp(32px,12vw,64px) 18px;
+    align-items: center;
+    gap: clamp(8px,2.4vw,20px);
+    padding: 6px clamp(10px,3vw,22px);
+  }
+  .chapter-directory .door-number { grid-area: 1/1; }
+  .chapter-directory .door-type { grid-area: 1/2; }
+  .chapter-directory .door-arrow { grid-area: 1/4; width: 16px; }
+  .chapter-directory .door-aperture {
+    grid-area: 1/3;
+    position: static;
+    width: 100%;
+    height: 34px;
+    transform: none;
+    opacity: .65 !important;
+  }
+}
+@media (max-width:900px) and (min-height:760px) {
+  .chapter-directory .door-type > span {
+    display:block;
+    margin-top:4px;
+    max-height:none;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+}
+@media (max-height:600px) and (min-width:530px) {
+  .chapter-directory .chapter-rail { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(54px,1fr)); min-height:174px; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  .chapter-directory:not([data-still=true])[data-state=open] .chapter-canvas { animation-duration:.55s; }
+  .chapter-directory:not([data-still=true])[data-state=open] .chapter-door-face { animation-duration:.65s; animation-delay:calc(.08s + var(--door)*38ms); }
+  .chapter-directory:not([data-still=true])[data-state=open] .door-type { animation-duration:.45s; animation-delay:calc(.2s + var(--door)*38ms); }
+}

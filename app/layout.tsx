@@ -8,6 +8,7 @@ import "../components/portfolio/cinema.css";
 import "../components/portfolio/phone-polish.css";
 import "../components/portfolio/phone-experience.css";
 import "../components/portfolio/orbital-mindset.css";
+import "../components/portfolio/project-detail.css";
 
 export const metadata: Metadata = {
   title: "A R Rajeev Chandar | Full-Stack Developer",

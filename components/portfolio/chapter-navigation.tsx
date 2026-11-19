@@ -1,8 +1,9 @@
 "use client";
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { ArrowUpRight, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
+import "./chapter-navigation.css";
 const chapters = [
   ["home", "Introduction", "The human behind the code", "01"],
   ["about", "Mindset", "Understand. Connect. Build.", "02"],
@@ -12,8 +13,25 @@ const chapters = [
   ["contact", "Let’s talk", "The next thing we build", "06"],
 ];
 
-function ChapterStage({ close }: { close: () => void }) {
-  const [active, setActive] = useState<number | null>(null);
+function navigateGrid(event: KeyboardEvent<HTMLElement>) {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  const links = Array.from(event.currentTarget.querySelectorAll<HTMLAnchorElement>("a"));
+  const index = links.indexOf(event.target as HTMLAnchorElement);
+  if (index < 0) return;
+  const columns = getComputedStyle(event.currentTarget).gridTemplateColumns.split(" ").length;
+  const next: Record<string, number> = {
+    ArrowRight: index + 1, ArrowLeft: index - 1,
+    ArrowDown: index + columns, ArrowUp: index - columns,
+    Home: 0, End: links.length - 1,
+  };
+  if (!(event.key in next)) return;
+  event.preventDefault();
+  links[Math.max(0, Math.min(links.length - 1, next[event.key]))].focus();
+}
+function ChapterStage({ close, visit }: { close: () => void; visit: (id: string) => void }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [focused, setFocused] = useState<number | null>(null);
+  const active = hovered ?? focused;
   const stage = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const trigger = document.querySelector(".menu-button")?.getBoundingClientRect();
@@ -28,14 +46,14 @@ function ChapterStage({ close }: { close: () => void }) {
       <button className="cinema-close" aria-label="Close navigation" onClick={close}><span>Close</span><X size={22}/></button>
     </header>
     <DialogDescription className="sr-only">Six chapters: the thinking, the work, and the person behind it.</DialogDescription>
-    <nav className="chapter-rail" aria-label="Full site navigation" onPointerLeave={() => setActive(null)}>
+    <nav className="chapter-rail" aria-label="Full site navigation" onKeyDown={navigateGrid} onPointerLeave={event => { if (event.pointerType === "mouse") setHovered(null); }}>
       {chapters.map(([id, title, caption, number], i) => <a
         href={`#${id}`} key={id} className="chapter-door" data-active={active === i}
         style={{ "--door": i, "--weight": active === i ? 2.2 : 1 } as CSSProperties}
-        onPointerEnter={event => { if (event.pointerType === "mouse") setActive(i); }}
-        onFocus={() => setActive(i)}
-        onBlur={() => setActive(null)}
-        onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) close(); }}
+        onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(i); }}
+        onFocus={() => { setHovered(null); setFocused(i); }}
+        onBlur={() => setFocused(null)}
+        onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) visit(id); }}
       >
         <div className="chapter-door-face">
           <span className="door-rule" aria-hidden="true"/>
@@ -51,6 +69,7 @@ function ChapterStage({ close }: { close: () => void }) {
 }
 
 export default function ChapterNavigation({ open, onOpenChange, still = false }: { open: boolean; onOpenChange: (open: boolean) => void; still?: boolean }) {
+  const destination = useRef<string | null>(null);
   const changeOpen = (value: boolean) => {
     if (!value) {
       const canvas = document.querySelector<HTMLElement>(".chapter-canvas");
@@ -62,9 +81,22 @@ export default function ChapterNavigation({ open, onOpenChange, still = false }:
     }
     onOpenChange(value);
   };
-  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="chapter-theatre top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
+  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="chapter-theatre chapter-directory top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
     onOpenAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>(".chapter-theatre .cinema-close")?.focus({ preventScroll: true }); }}
-    onCloseAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>(".menu-button")?.focus({ preventScroll: true }); }}>
-    <ChapterStage close={() => changeOpen(false)}/>
+    onCloseAutoFocus={event => {
+      event.preventDefault();
+      const section = destination.current ? document.getElementById(destination.current) : null;
+      destination.current = null;
+      if (section) {
+        if (!section.hasAttribute("tabindex")) {
+          section.tabIndex = -1;
+          section.addEventListener("blur", () => section.removeAttribute("tabindex"), { once: true });
+        }
+        section.focus({ preventScroll: true });
+      } else {
+        document.querySelector<HTMLButtonElement>(".menu-button")?.focus({ preventScroll: true });
+      }
+    }}>
+    <ChapterStage close={() => changeOpen(false)} visit={id => { destination.current = id; changeOpen(false); }}/>
   </DialogContent></Dialog>;
 }

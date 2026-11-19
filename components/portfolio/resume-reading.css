@@ -1,0 +1,34 @@
+.folio-footer .folio-mode {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #a4aaa24d;
+  border-radius: 3px;
+  background: transparent;
+  color: #eeeee7;
+  font: 500 13px var(--body);
+}
+.folio-mode:hover, .folio-mode[aria-pressed=true] { background: #ffffff0e; }
+.folio-transcript {
+  max-width: 70ch;
+  margin: 24px auto;
+  padding: clamp(20px, 5vw, 48px);
+  color: #263029;
+  background: #f3f2eb;
+  font: 400 clamp(16px, 1.2vw, 18px)/1.6 var(--body);
+  overflow-wrap: anywhere;
+}
+.folio-transcript p { margin: .6em 0; }
+.folio-transcript p:first-child { font: 600 1.8em/1.1 var(--display); }
+.folio-transcript h3 {
+  margin: 2em 0 .75em;
+  padding-top: 1em;
+  border-top: 1px solid #52665155;
+  font: 600 .85em/1.4 var(--mono);
+  letter-spacing: .06em;
+}
+.folio-scene[data-reading=true] .folio-reading-space { perspective: none; }
+@media (max-width: 600px) {
+  .folio-scene .folio-centering { padding: 10px; }
+  .folio-scene .folio-footer { gap: 4px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .folio-transcript { margin: 12px; }
+}

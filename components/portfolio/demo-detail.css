@@ -1,0 +1,28 @@
+.solenne-rig .sample-signal {
+  display: grid;
+  align-items: center;
+  height: 46px;
+  margin-top: 8px;
+  color: #cdbbdd;
+}
+.solenne-rig .sample-signal .waveform { height: 36px; margin: 0; }
+.transcript-sample, .frame-sample { display: flex; align-items: center; gap: 8px; }
+.transcript-sample time, .frame-sample small { font: 8px var(--mono); color: #b1a5bb; }
+.transcript-sample q { font: 13px/1.4 var(--body); }
+.frame-sample > span {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 0;
+  border: 1px solid #c5b3dd38;
+  border-radius: 3px;
+}
+.solenne-rig .signal-explanation { min-height: 3em; margin: 3px 0 0; }
+.demo-rig [role=tabpanel]:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .demo-rig [role=tabpanel][data-state=active] { animation: demo-sample-in .2s ease-out; }
+  @keyframes demo-sample-in { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  .motion-paused .demo-rig [role=tabpanel] { animation: none; }
+}

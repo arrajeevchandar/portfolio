@@ -76,7 +76,7 @@ export function JournalSequence({step}:{step:number}) {
  return <span className="journal-sequence" data-step={step}>
   <span className="journal-sequence-header"><span>solenne</span><small>PRIVATE JOURNAL</small></span>
   <span className="journal-sequence-stage">
-   <span className="journal-panel journal-capture"><small>01 / CAPTURE</small><strong>A moment<br/>to reflect.</strong><span className="journal-timeline">{Array.from({length:32},(_,i)=><i key={i} style={{height:`${12+Math.abs(Math.sin(i*1.9)*Math.cos(i*.3))*70}%`}}/>)}</span><span className="journal-record"><i/> Video journal</span></span>
+   <span className="journal-panel journal-capture"><small>01 / CAPTURE</small><strong>A moment<br/>to reflect.</strong><span className="journal-timeline">{Array.from({length:32},(_,i)=><i key={i} style={{height:`${Math.round(12+Math.abs(Math.sin(i*1.9)*Math.cos(i*.3))*70)}%`}}/>)}</span><span className="journal-record"><i/> Video journal</span></span>
    <span className="journal-panel journal-analysis"><small>02 / UNDERSTAND</small><strong>Three signals.<br/>One entry.</strong><span className="journal-channels">{['Speech / transcript','Voice / tone','Visual / expression'].map((v,i)=><span key={v}><b>0{i+1}</b>{v}<i/></span>)}</span></span>
    <span className="journal-panel journal-reflect"><small>03 / REFLECT</small><strong>Return to<br/>your thoughts.</strong><span className="journal-note"><span>TRANSCRIPT</span><i/><i/><i/></span><span className="journal-tags"><span>Reflection cards</span><span>Journal history</span></span></span>
   </span>
