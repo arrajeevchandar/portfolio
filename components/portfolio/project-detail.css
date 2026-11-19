@@ -9,13 +9,239 @@
 }
 .case-dialog .case-header button { min-width: 44px; min-height: 44px }
 
-/* Settle the next caption without moving the project frame or its controls. */
-@media (prefers-reduced-motion: no-preference) {
-  .portfolio:not(.motion-paused) .project-story .story-copy > :is(h3,p) {
-    animation: project-caption-in .2s cubic-bezier(.2,.7,.3,1) both;
+.project-demo :is(.float-chip,.floating-panel) {
+  backdrop-filter: none;
+}
+
+/* Overlapping beats reserve the tallest caption's space before the first scroll. */
+.story-copy,
+.phone-project-caption {
+  display: grid;
+}
+
+.story-beat,
+.phone-project-caption > span {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.story-beat > .micro { color: var(--project-color); font-size: 9px }
+.story-beat[data-active="false"],
+.phone-project-caption > [data-active="false"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+@media (max-width: 600px) {
+  .portfolio .project-copy .story-beat > .micro { display: none }
+
+  .phone-project-scene { touch-action: pan-y pinch-zoom }
+  .phone-project-0 .journal-sequence[data-step] .journal-panel {
+    transition: transform .42s cubic-bezier(.22,.68,.22,1), opacity .24s ease-out;
+  }
+
+  .phone-project-1 .classroom-people { transition: opacity .24s ease-out }
+  .phone-project-1 .classroom-sheet > strong,
+  .phone-project-1 .classroom-chart,
+  .phone-project-1 .classroom-reward,
+  .phone-project-2 .chain-stations > span,
+  .phone-project-3 .fitness-dial,
+  .phone-project-3 .fitness-routes {
+    transition: transform .42s cubic-bezier(.22,.68,.22,1), opacity .24s ease-out;
   }
 }
-@keyframes project-caption-in {
-  from { opacity: .68; transform: translateY(4px) }
-  to { opacity: 1; transform: none }
+
+@media (prefers-reduced-motion: no-preference) {
+  .portfolio:not(.motion-paused):not(.reduced-motion) :is(.story-beat,.phone-project-caption > span) {
+    transition: opacity .2s ease-out, translate .26s cubic-bezier(.22,.68,.22,1), visibility 0s linear .2s;
+  }
+
+  .portfolio:not(.motion-paused):not(.reduced-motion) :is(.story-beat,.phone-project-caption > span)[data-active="false"] {
+    translate: 0 4px;
+  }
+
+  .portfolio:not(.motion-paused):not(.reduced-motion) :is(.story-beat,.phone-project-caption > span)[data-active="true"] {
+    transition-delay: 0s;
+  }
+}
+
+@media (max-width: 600px) and (min-height: 500px) and (prefers-reduced-motion: no-preference) {
+  .portfolio:not(.motion-paused):not(.reduced-motion) .phone-project-art {
+    translate: 0 calc((.5 - var(--project-progress, .5)) * 12px);
+  }
+}
+
+.project-story .chapter-controls[data-progress] button > i {
+  transform: scaleX(clamp(0, calc(var(--story-travel) - var(--story-offset)), 1));
+  transition: none;
+}
+
+@media (max-width: 600px) {
+  .portfolio .project-story .chapter-controls[data-progress] button > i {
+    display: block;
+    inset: auto 6px 3px;
+    width: auto;
+    height: 1px;
+    opacity: .65;
+  }
+}
+
+.portfolio.motion-paused :is(.phone-project-scene, .demo-motion) * {
+  transition-duration: 0s !important;
+}
+
+.story-label > [aria-hidden="true"] { display: none }
+
+.project-sticky[data-project-scrub] .story-label { display: inline-grid }
+
+.project-sticky[data-project-scrub] .story-label > span {
+  display: block;
+  grid-area: 1 / 1;
+}
+
+[data-project-scrub] [data-story-slot="0"] {
+  --slot-opacity: var(--beat-0);
+  --slot-distance: calc(var(--beat-0) - 1);
+}
+
+[data-project-scrub] [data-story-slot="1"] {
+  --slot-opacity: var(--beat-1);
+  --slot-distance: calc(var(--beat-0) - var(--beat-2));
+}
+
+[data-project-scrub] [data-story-slot="2"] {
+  --slot-opacity: var(--beat-2);
+  --slot-distance: calc(1 - var(--beat-2));
+}
+
+[data-project-scrub] [data-story-slot="0-1"] {
+  --slot-opacity: calc(1 - var(--beat-2));
+  --slot-distance: calc(-1 * var(--beat-2));
+}
+
+/* Scrubbed layers get their pose from the timeline, so reversing scroll
+   reverses the same transition instead of starting a separate CSS timer. */
+.portfolio .project-sticky[data-project-scrub] [data-story-slot] {
+  visibility: visible;
+  opacity: var(--slot-opacity);
+  translate: 0 calc(var(--slot-distance) * 5px);
+  transition: none;
+}
+
+.portfolio .project-sticky[data-project-scrub] .story-beat {
+  translate: 0 calc(var(--slot-distance) * 12px);
+}
+
+[data-project-scrub] .demo-motion :is(.solenne-insight,.cortex-float,.document-sheet,.fitness-float) {
+  transition: none;
+}
+
+[data-project-scrub] .demo-motion .solenne-rig[data-step] .solenne-insight {
+  transform: translate(calc(10px * var(--beat-0) - 12px * var(--beat-2)), calc(25px * var(--beat-0) - 12px * var(--beat-2)))
+    translateZ(calc(55px + 10px * var(--beat-2))) rotate(calc(7deg * var(--beat-0) + 4deg * var(--beat-1) - 2deg * var(--beat-2)));
+  opacity: calc(1 - .2 * var(--beat-0));
+}
+
+[data-project-scrub] .demo-motion .cortex-rig[data-step] .cortex-float {
+  transform: translateY(calc(-20px * var(--beat-2))) translateZ(calc(60px + 5px * var(--beat-2)))
+    rotate(calc(-5deg + 7deg * var(--beat-2)));
+}
+
+[data-project-scrub] .demo-motion .dochain-rig[data-step] .document-sheet {
+  transform: rotate(calc(-7deg * var(--beat-0) + 3deg * var(--beat-1))) rotateY(calc(-13deg * var(--beat-0) + 14deg * var(--beat-1)));
+  box-shadow: none;
+}
+
+[data-project-scrub] .demo-motion .dochain-rig .document-sheet::before,
+[data-project-scrub] .demo-motion .dochain-rig .document-sheet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+[data-project-scrub] .demo-motion .dochain-rig .document-sheet::before {
+  box-shadow: 15px 15px 0 #8bd7ff0e;
+  opacity: calc(1 - var(--beat-2));
+}
+
+[data-project-scrub] .demo-motion .dochain-rig .document-sheet::after {
+  box-shadow: 0 0 45px #8bd7ff25;
+  opacity: var(--beat-2);
+}
+
+[data-project-scrub] .demo-motion .fitness-rig[data-step] .fitness-float {
+  transform: translate(calc(-5px * var(--beat-2)), calc(-30px * var(--beat-2)))
+    translateZ(calc(55px + 15px * var(--beat-2))) rotate(calc(-5deg + 8deg * var(--beat-2)));
+}
+
+@media (max-width: 600px) {
+  .portfolio .project-sticky[data-project-scrub] .journal-sequence[data-step] .journal-panel {
+    transform: translateX(calc(24px * var(--slot-distance)));
+    translate: none;
+    transition: none;
+  }
+
+  [data-project-scrub] .phone-project-scene[data-phase] :is(.classroom-sheet > strong, .classroom-people, .classroom-chart,
+    .classroom-chart i, .classroom-reward, .chain-stations > span, .chain-document, .document-halo, .document-seal,
+    .fitness-dial, .fitness-dial > i, .fitness-routes) { transition: none }
+
+  [data-project-scrub] .phone-project-scene[data-phase] :is(.classroom-sheet > strong, .classroom-people) { opacity: var(--beat-0) }
+  [data-project-scrub] .phone-project-scene[data-phase] .classroom-sheet {
+    transform: translateY(calc(-4px * var(--beat-1))) rotateY(calc(4deg * var(--beat-2)));
+    transition: none;
+  }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .classroom-chart { opacity: var(--beat-1) }
+  [data-project-scrub] .phone-project-scene[data-phase] .classroom-chart i { transform: scaleY(calc(.1 + .9 * var(--beat-1))) }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .classroom-reward {
+    opacity: var(--beat-2);
+    transform: scale(calc(.8 + .2 * var(--beat-2)));
+  }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .chain-document {
+    transform: translateY(calc(-12px - 6px * var(--beat-1))) scale(calc(1 - .04 * var(--beat-1)));
+  }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .document-halo { transform: scale(calc(1 + .05 * var(--beat-1))) }
+  [data-project-scrub] .phone-project-scene[data-phase] .document-seal { transform: scale(var(--beat-2)) }
+  [data-project-scrub] .phone-project-scene[data-phase] .chain-stations > span:nth-child(1) { opacity: calc(.35 + .65 * var(--beat-0)) }
+  [data-project-scrub] .phone-project-scene[data-phase] .chain-stations > span:nth-child(2) { opacity: calc(.35 + .65 * var(--beat-1)) }
+  [data-project-scrub] .phone-project-scene[data-phase] .chain-stations > span:nth-child(3) { opacity: calc(.35 + .65 * var(--beat-2)) }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .fitness-dial {
+    opacity: calc(1 - .92 * var(--beat-2));
+    transform: scale(calc(1 - .1 * var(--beat-1) + .1 * var(--beat-2)));
+  }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .fitness-dial > i { transform: rotate(calc(150deg * var(--beat-1))) }
+
+  [data-project-scrub] .phone-project-scene[data-phase] .fitness-routes {
+    opacity: var(--beat-2);
+    transform: translateY(calc(14px * (1 - var(--beat-2)))) rotateX(calc(-18deg * (1 - var(--beat-2))));
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1050px) and (max-height: 520px) {
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-sticky {
+    gap: 8px;
+    padding-top: 74px;
+    padding-bottom: 48px;
+  }
+
+  .portfolio:not(.motion-paused):not(.reduced-motion) .project-copy {
+    scale: var(--project-copy-fit, 1);
+  }
+
+  .project-story .project-wordmark { margin-bottom: 6px }
+  .project-story .project-copy h2 { font-size: clamp(26px, 7.4vh, 38px) }
+  .project-story .project-copy h2 br,
+  .project-story .project-intro,
+  .project-story .story-beat > :is(.micro, .step-tech) { display: none }
+  .project-story .project-copy h2 em { margin-left: .18em }
+  .project-story .story-copy { min-height: 0; margin-top: 10px; padding-top: 8px }
+  .project-story .story-copy h3 { font-size: 17px; margin: 4px 0 }
+  .project-story .story-copy p { font-size: 12px; line-height: 1.45 }
+  .project-story .project-copy > .underlined-link { margin-top: 4px; min-height: 44px; padding-block: 8px }
 }

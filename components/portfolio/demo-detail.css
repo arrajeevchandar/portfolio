@@ -21,6 +21,8 @@
 }
 .solenne-rig .signal-explanation { min-height: 3em; margin: 3px 0 0; }
 .demo-rig [role=tabpanel]:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+.portfolio .demo-rig, .project-preview-dialog .demo-rig { will-change: auto; }
+.demo-rig:not([data-demo-visible]) :is(.journal-orbit,.waveform i) { animation-play-state: paused; }
 @media (prefers-reduced-motion: no-preference) {
   .demo-rig [role=tabpanel][data-state=active] { animation: demo-sample-in .2s ease-out; }
   @keyframes demo-sample-in { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }

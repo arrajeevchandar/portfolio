@@ -45,7 +45,66 @@
   .chapter-directory .chapter-rail { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(54px,1fr)); min-height:174px; }
 }
 @media (prefers-reduced-motion:no-preference) {
-  .chapter-directory:not([data-still=true])[data-state=open] .chapter-canvas { animation-duration:.55s; }
-  .chapter-directory:not([data-still=true])[data-state=open] .chapter-door-face { animation-duration:.65s; animation-delay:calc(.08s + var(--door)*38ms); }
-  .chapter-directory:not([data-still=true])[data-state=open] .door-type { animation-duration:.45s; animation-delay:calc(.2s + var(--door)*38ms); }
+  .chapter-theatre.chapter-directory[data-still=false][data-state=closed] {
+    animation-duration: .54s !important;
+  }
+  .chapter-directory[data-still=false][data-state=open] .chapter-canvas {
+    animation-name: directory-iris-in;
+    animation-duration: .48s;
+  }
+  .chapter-directory[data-still=false][data-state=closed] .chapter-canvas { animation-duration: .54s; }
+  /* Hold the backdrop behind the collapsing iris while the destination settles. */
+  .chapter-directory[data-still=false][data-state=closed][data-navigating=true]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: #101314;
+    animation: directory-arrival .54s cubic-bezier(.32,.03,.47,1) both;
+  }
+  .chapter-directory[data-still=false][data-state=open] .chapter-door-face {
+    animation: directory-assemble .48s calc(.055s + var(--door) * 26ms) cubic-bezier(.18,.77,.22,1) both;
+  }
+  .chapter-directory[data-still=false][data-state=closed] .chapter-door-face {
+    animation-duration: .34s;
+    animation-delay: calc(var(--door) * 15ms);
+  }
+  .chapter-directory[data-still=false][data-state=open] .door-type {
+    animation: directory-type .34s calc(.14s + var(--door) * 26ms) cubic-bezier(.18,.77,.22,1) both;
+  }
+  .chapter-directory[data-still=false][data-state=open] .chapter-blueprint {
+    animation-duration: .48s;
+    animation-delay: calc(.14s + var(--door) * 26ms);
+  }
+  .chapter-directory[data-still=false][data-state=open] .chapter-door-face::after {
+    animation-duration: .45s;
+    animation-delay: calc(.1s + var(--door) * 26ms);
+  }
+  .chapter-directory[data-still=false][data-state=open] :is(.theatre-header > div,.theatre-footer) {
+    animation-name: directory-type;
+    animation-duration: .36s;
+    animation-delay: .1s;
+  }
+  .chapter-directory[data-still=false][data-state=closed] :is(.door-type,.theatre-header > div,.theatre-footer) {
+    transform: var(--label-exit-transform, none);
+    opacity: var(--label-exit-opacity, 1);
+  }
+}
+
+@keyframes directory-iris-in {
+  from { clip-path: circle(var(--menu-start-radius, 22px) at var(--menu-x) var(--menu-y)); }
+  to { clip-path: circle(150vmax at var(--menu-x) var(--menu-y)); }
+}
+@keyframes directory-arrival {
+  0%, 24% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes directory-assemble {
+  from { opacity: 0; transform: translate3d(0,38px,-150px) rotateX(27deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes directory-type {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }

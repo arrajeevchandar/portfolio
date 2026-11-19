@@ -27,6 +27,91 @@
   letter-spacing: .06em;
 }
 .folio-scene[data-reading=true] .folio-reading-space { perspective: none; }
+.folio-scene .folio-reading-space { scrollbar-gutter: stable both-edges; }
+.folio-scene .folio-arrival { transition: none; }
+.folio-zoom-surface { transform-style: preserve-3d; }
+.folio-scene .folio-interaction { transition-duration: .2s; }
+.folio-scene[data-flight=false][data-ready=true] .folio-arrival,
+.folio-scene[data-flight=false][data-ready=true] .folio-original { visibility: visible; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-ready=true]
+  :is(.folio-arrival,.folio-original,.folio-folds,.leaf-top,.leaf-bottom) { animation-duration: 1.16s; }
+
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-ready=true] .folio-original {
+    animation-name: folio-print-in;
+  }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-ready=true] .folio-folds {
+    animation-name: folio-folds-away;
+  }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-ready=true] .leaf-top {
+    animation-name: folio-top-unfold;
+  }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-ready=true] .leaf-bottom {
+    animation-name: folio-bottom-unfold;
+  }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-flight=false][data-ready=true]
+  :is(.folio-arrival,.folio-original,.folio-folds,.leaf-top,.leaf-bottom) { animation: none; }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-flight=false][data-ready=true] .folio-original { opacity: 1; }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene[data-flight=false][data-ready=true] .folio-folds { opacity: 0; }
+
+  .folio-dialog[data-still=false][data-state=open] :is(.folio-toolbar,.folio-footer) {
+    animation-duration: .44s;
+    animation-delay: .11s;
+  }
+  .folio-dialog[data-still=false][data-state=open] .folio-scene::before { animation-duration: .48s; }
+
+  .folio-dialog[data-still=false][data-state=closed] { animation-duration: .62s !important; }
+  .folio-dialog[data-still=false][data-state=closed] .folio-scene::before {
+    animation: folio-exit-light .62s ease-in both;
+  }
+  .folio-dialog[data-still=false][data-state=closed] .folio-arrival { animation-duration: .62s; }
+  .folio-dialog[data-still=false][data-state=closed] :is(.leaf-top,.leaf-bottom) { animation-duration: .46s; }
+  .folio-dialog[data-still=false][data-state=closed] .folio-original { animation: folio-print-out .18s ease-out both; }
+  .folio-dialog[data-still=false][data-state=closed] .folio-folds { animation: folio-folds-back .18s ease-out both; }
+
+  /* Keep a zoomed or textual page at its reading position during dismissal. */
+  .folio-dialog[data-still=false][data-state=closed]:has(.folio-scene:is([data-zoomed=true],[data-reading=true],[data-ready=false])) {
+    animation: folio-reader-out .24s ease-in both !important;
+  }
+  .folio-dialog[data-still=false][data-state=closed] .folio-scene:is([data-zoomed=true],[data-reading=true],[data-ready=false])
+  :is(.folio-arrival,.folio-original,.folio-folds,.leaf-top,.leaf-bottom) { animation: none; }
+  .folio-dialog[data-still=false][data-state=closed] .folio-scene[data-zoomed=true] .folio-original { opacity: 1; }
+  .folio-dialog[data-still=false][data-state=closed] .folio-scene[data-zoomed=true] .folio-folds { opacity: 0; }
+}
+
+@keyframes folio-print-in {
+  0%, 80% { opacity: 0; }
+  96%, 100% { opacity: 1; }
+}
+@keyframes folio-folds-away {
+  0%, 80% { opacity: 1; }
+  96%, 100% { opacity: 0; }
+}
+@keyframes folio-top-unfold {
+  0%, 28% { transform: rotateX(-180deg); }
+  66%, 100% { transform: rotateX(0); }
+}
+@keyframes folio-bottom-unfold {
+  0%, 43% { transform: rotateX(180deg); }
+  82%, 100% { transform: rotateX(0); }
+}
+@keyframes folio-print-out {
+  from { opacity: var(--ink-start, 1); }
+  to { opacity: 0; }
+}
+@keyframes folio-folds-back {
+  from { opacity: var(--folds-start, 0); }
+  to { opacity: 1; }
+}
+@keyframes folio-exit-light {
+  0%, 30% { opacity: var(--light-start, 1); }
+  100% { opacity: 0; }
+}
+@keyframes folio-reader-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 @media (max-width: 600px) {
   .folio-scene .folio-centering { padding: 10px; }
   .folio-scene .folio-footer { gap: 4px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }

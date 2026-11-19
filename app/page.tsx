@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { projects, type Project } from "@/components/portfolio/content";
 import { SolenneDemo, CortexDemo, DoChainDemo, FitnessDemo } from "@/components/portfolio/demos";
+import { scrollStoryTo, stopStoryScroll } from "@/components/portfolio/story-scroll";
+import { captureStory, getStoryLayout, measureStory, restoreStory, type StoryPosition } from "@/components/portfolio/story-position";
 import type { SceneState } from "@/components/portfolio/world";
 import Mindset from "@/components/portfolio/mindset";
 import ResumeViewer from "@/components/portfolio/resume-viewer";
@@ -32,9 +34,11 @@ const getServerMotion = () => false;
 const magnet = (event: PointerEvent<HTMLElement>) => { if (event.pointerType !== "mouse" || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const r = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty("--mx", `${(event.clientX - r.left - r.width / 2) * 0.14}px`); event.currentTarget.style.setProperty("--my", `${(event.clientY - r.top - r.height / 2) * 0.2}px`); };
 const resetMagnet = (event: PointerEvent<HTMLElement>) => { event.currentTarget.style.setProperty("--mx", "0px"); event.currentTarget.style.setProperty("--my", "0px"); };
 
-function ProjectStory({ project, index, step, onStep, onDetails }: { project: Project; index: number; step: number; onStep: (step: number) => void; onDetails: () => void }) {
+function ProjectStory({ project, index, still, onDetails }: { project: Project; index: number; still: boolean; onDetails: () => void }) {
   const Demo = demos[index];
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [step, setStep] = useState(0);
+  const track = useRef<ScrollTrigger | undefined>(undefined);
   const projectHost = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = projectHost.current;
@@ -42,22 +46,144 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
     const composition = el.querySelector<HTMLElement>(".project-composition")!;
     const copy = el.querySelector<HTMLElement>(".project-copy")!;
     const demo = el.querySelector<HTMLElement>(".project-demo")!;
-    const fit = () => {
-      const prelude = el.querySelector<HTMLElement>(".project-mobile-prelude")!;
-      el.style.setProperty("--mobile-prelude", `${prelude.offsetHeight}px`);
-      const rig = demo.querySelector<HTMLElement>(".demo-rig");
-      if (rig) el.style.setProperty("--mobile-demo-fit", String(Math.min(innerWidth <= 600 ? 1 : .8, demo.clientHeight / Math.max(1, rig.offsetHeight), demo.clientWidth / Math.max(1, rig.offsetWidth))));
-      const available = composition.clientHeight;
-      const natural = Math.max(copy.offsetHeight, demo.offsetHeight);
-      el.style.setProperty("--project-fit", String(Math.min(1, available / Math.max(1, natural))));
-    };
+    const prelude = el.querySelector<HTMLElement>(".project-mobile-prelude")!;
+    const rig = demo.querySelector<HTMLElement>(".demo-rig");
+    const fit = () => {
+      const available = composition.clientHeight;
+      const natural = Math.max(copy.offsetHeight, demo.offsetHeight);
+      const properties = {
+        "--mobile-prelude": `${prelude.offsetHeight}px`,
+        "--project-fit": String(Math.min(1, available / Math.max(1, natural))),
+        "--project-copy-fit": String(Math.min(1, available / Math.max(1, copy.offsetHeight))),
+        "--mobile-demo-fit": rig
+          ? String(Math.min(innerWidth <= 600 ? 1 : .8, demo.clientHeight / Math.max(1, rig.offsetHeight), demo.clientWidth / Math.max(1, rig.offsetWidth)))
+          : "",
+      };
+      Object.entries(properties).forEach(([name, value]) => {
+        if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
+      });
+    };
     const observer = new ResizeObserver(fit);
-    [composition, copy, demo, el.querySelector<HTMLElement>(".project-mobile-prelude")!].forEach(item => observer.observe(item));
-    const rig = demo.querySelector<HTMLElement>(".demo-rig");
+    [composition, copy, demo, prelude].forEach(item => observer.observe(item));
     if (rig) observer.observe(rig);
     fit();
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    const el = projectHost.current;
+    if (!el || still) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const prelude = el.querySelector<HTMLElement>(".project-mobile-prelude")!;
+    const sticky = el.querySelector<HTMLElement>(".project-sticky")!;
+    const art = el.querySelector<HTMLElement>(".phone-project-art");
+    const controls = el.querySelector<HTMLElement>(".chapter-controls");
+    const desktopDemo = el.querySelector<HTMLElement>(".demo-motion");
+    let disposed = false;
+    let pinned = false;
+    let currentStep = -1;
+    let currentBlend = "";
+    const blendAt = (travel: number, boundary: number) => {
+      const ratio = gsap.utils.clamp(0, 1, (travel - boundary + .28) / .56);
+      return ratio * ratio * (3 - 2 * ratio);
+    };
+    const removeBlend = () => {
+      sticky.removeAttribute("data-project-scrub");
+      [0, 1, 2].forEach(beat => sticky.style.removeProperty(`--beat-${beat}`));
+      currentBlend = "";
+    };
+
+    const context = gsap.context(() => {
+      const timeline = gsap.timeline({ defaults: { duration: 1, ease: "none" } });
+      timeline
+        .fromTo(desktopDemo, { rotateY: -12, rotateZ: -3, y: 45 }, { rotateY: 9, rotateZ: 2, y: -22 }, 0)
+        .fromTo(".project-watermark", { xPercent: 8 }, { xPercent: -20 }, 0)
+        .fromTo(".project-atmosphere", { scale: .7, opacity: .3 }, { scale: 1.5, opacity: .7 }, 0);
+      const update = () => {
+        if (disposed || !pinned) return;
+        const progress = timeline.progress();
+        if (innerWidth <= 600) art?.style.setProperty("--project-progress", String(progress));
+        const traveled = progress * project.steps.length;
+        const second = blendAt(traveled, 1);
+        const third = blendAt(traveled, 2);
+        const blend = [1 - second, second - third, third].map(value => value.toFixed(4));
+        const blendKey = blend.join(",");
+        if (blendKey !== currentBlend) {
+          if (!currentBlend) sticky.setAttribute("data-project-scrub", "");
+          currentBlend = blendKey;
+          blend.forEach((value, beat) => sticky.style.setProperty(`--beat-${beat}`, value));
+        }
+        if (controls) {
+          if (!controls.hasAttribute("data-progress")) controls.setAttribute("data-progress", "");
+          controls.style.setProperty("--story-travel", String(traveled));
+        }
+        const nextStep = Math.min(project.steps.length - 1, Math.floor(traveled));
+        if (nextStep !== currentStep) {
+          currentStep = nextStep;
+          setStep(nextStep);
+        }
+      };
+      timeline.eventCallback("onUpdate", update);
+      track.current = ScrollTrigger.create({
+        trigger: el,
+        animation: timeline,
+        start: () => {
+          const nextPinned = getComputedStyle(sticky).position === "sticky";
+          if (pinned !== nextPinned) currentStep = -1;
+          pinned = nextPinned;
+          return pinned ? `top+=${prelude.offsetHeight} top` : "top bottom";
+        },
+        end: () => pinned ? `bottom top+=${sticky.offsetHeight}` : "bottom top",
+        scrub: .14,
+        onRefresh: () => {
+          if (pinned) update();
+          else {
+            controls?.removeAttribute("data-progress");
+            removeBlend();
+          }
+        },
+      });
+    }, el);
+
+    return () => {
+      disposed = true;
+      track.current = undefined;
+      context.revert();
+      removeBlend();
+      art?.style.removeProperty("--project-progress");
+      controls?.style.removeProperty("--story-travel");
+      controls?.removeAttribute("data-progress");
+    };
+  }, [project.steps.length, still]);
+
+  const jumpStep = (next: number) => {
+    const trigger = track.current;
+    const sticky = projectHost.current?.querySelector<HTMLElement>(".project-sticky");
+    if (!trigger || !sticky || getComputedStyle(sticky).position !== "sticky") {
+      setStep(next);
+      return;
+    }
+    const progress = (next + .5) / project.steps.length;
+    scrollStoryTo(trigger.start + (trigger.end - trigger.start) * progress);
+  };
+
+  const stepKeys = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const buttons = Array.from(event.currentTarget.querySelectorAll("button"));
+    const index = buttons.indexOf(event.target as HTMLButtonElement);
+    if (index < 0) return;
+    const last = buttons.length - 1;
+    const destinations: Record<string, number> = {
+      ArrowLeft: Math.max(0, index - 1), ArrowRight: Math.min(last, index + 1),
+      Home: 0, End: last,
+    };
+    const next = destinations[event.key];
+    if (typeof next !== "number") return;
+    event.preventDefault();
+    buttons[next].focus({ preventScroll: true });
+    jumpStep(next);
+  };
+
   return <section ref={projectHost} id={project.id} className={`project-story project-${project.id}`} data-chapter={index + 2} style={{ "--project-color": project.color } as CSSProperties} aria-labelledby={`${project.id}-title`}>
     <div className="project-mobile-prelude"><span className="micro">{project.number} / {project.name}</span><h2>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p>{project.short}</p></div>
     <div className="project-sticky">
@@ -65,12 +191,18 @@ function ProjectStory({ project, index, step, onStep, onDetails }: { project: Pr
       <div className="project-watermark" aria-hidden="true">{project.name}</div>
       <div className="project-topline"><span><b>{project.number}</b> / <span className="project-desktop-label">SELECTED SYSTEMS</span><span className="project-mobile-label">{project.name}</span></span><span>{project.category}</span><span>{project.date}</span></div>
       <div className="project-composition">
-        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" key={step} aria-live="off"><span className="micro">0{step + 1} / {project.steps[step].label.toUpperCase()}</span><h3><span className="project-desktop-label">{project.steps[step].title}</span><span className="project-mobile-label">{phoneProjectTitles[index][step]}</span></h3><p className="story-full-text">{project.steps[step].text}</p><p className="story-mobile-text">{mobileStories[index][step]}</p><span className="step-tech">{project.steps[step].tech}</span></div><button className="underlined-link" onClick={onDetails}><span className="project-desktop-label">Explore the engineering</span><span className="project-mobile-label">Project details</span> <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
+        <div className="project-copy"><span className="project-wordmark">{project.name}<ArrowUpRight size={19}/></span><h2 id={`${project.id}-title`}>{project.title[0]}<br/><em>{project.title[1]}</em></h2><p className="project-intro">{project.intro}</p><div className="story-copy" aria-live="off">
+          {project.steps.map((item, beat) => <div className="story-beat" key={item.label} data-story-slot={beat} data-active={step === beat} aria-hidden={step !== beat}>
+            <span className="micro">0{beat + 1} / {item.label.toUpperCase()}</span>
+            <h3><span className="project-desktop-label">{item.title}</span><span className="project-mobile-label">{phoneProjectTitles[index][beat]}</span></h3>
+            <p className="story-full-text">{item.text}</p><p className="story-mobile-text">{mobileStories[index][beat]}</p><span className="step-tech">{item.tech}</span>
+          </div>)}
+        </div><button className="underlined-link" onClick={onDetails}><span className="project-desktop-label">Explore the engineering</span><span className="project-mobile-label">Project details</span> <Plus size={17}/></button><button className="mobile-preview-open" onClick={() => setPreviewOpen(true)}>Try the demo <Expand size={15}/></button></div>
         <div className="project-demo"><PhoneProjectVisual index={index} step={step} onOpen={() => setPreviewOpen(true)}/><div className="demo-motion"><Demo step={step}/></div><span className="demo-caption"><span>INTERACTIVE CONCEPT</span><span>ILLUSTRATIVE DATA · TRY THE CONTROLS</span></span></div>
       </div>
-      <div className="project-bottomline"><div className="chapter-controls" aria-label={`${project.name} story steps`}>{project.steps.map((item, i) => <button key={item.label} onClick={() => onStep(i)} aria-current={step === i ? "step" : undefined} className={step === i ? "active" : ""}><span>0{i + 1}</span>{item.label}<i/></button>)}</div><span className="scroll-to-unfold">SCROLL TO UNFOLD <ArrowDown size={14}/></span></div>
+      <div className="project-bottomline"><div className="chapter-controls" role="group" aria-label={`${project.name} story steps`} onKeyDown={stepKeys}>{project.steps.map((item, i) => <button key={item.label} style={{ "--story-offset": i } as CSSProperties} onClick={() => jumpStep(i)} aria-current={step === i ? "step" : undefined} className={step === i ? "active" : ""}><span>0{i + 1}</span>{item.label}<i/></button>)}</div><span className="scroll-to-unfold">SCROLL TO UNFOLD <ArrowDown size={14}/></span></div>
     </div>
-    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}><DialogContent className="project-preview-dialog" showCloseButton={false}><header><div><DialogTitle>{project.name}</DialogTitle><DialogDescription>Interactive concept · illustrative data</DialogDescription></div><button aria-label="Close interactive preview" onClick={() => setPreviewOpen(false)}><X/></button></header><Demo step={step}/></DialogContent></Dialog>
+    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}><DialogContent className={`project-preview-dialog ${still ? "motion-paused" : ""}`} showCloseButton={false}><header><div><DialogTitle>{project.name}</DialogTitle><DialogDescription>Interactive concept · illustrative data</DialogDescription></div><button aria-label="Close interactive preview" onClick={() => setPreviewOpen(false)}><X/></button></header><Demo step={step}/></DialogContent></Dialog>
   </section>;
 }
 
@@ -79,77 +211,200 @@ export default function Home() {
   const scene = useRef<SceneState>({ chapter: 0, progress: 0, openingProgress: 0, openingExit: 0, paused: false, reduced: false, exploded: false, pointer: { x: 0, y: 0 } });
   const [resumeOpen, setResumeOpen] = useState(false);
   const [paused, setPaused] = useState(false), [exploded, setExploded] = useState(false), [menuOpen, setMenuOpen] = useState(false), [detail, setDetail] = useState<number | null>(null), [copied, setCopied] = useState(false);
-  const [chapter, setChapter] = useState(0), [steps, setSteps] = useState([0, 0, 0, 0]);
+  const [chapter, setChapter] = useState(0);
+  const readingPosition = useRef<StoryPosition | undefined>(undefined);
+  const pendingPosition = useRef<StoryPosition | undefined>(undefined);
+  const pausedPosition = useRef<{ position: StoryPosition; y: number; step: Element | null } | undefined>(undefined);
   const reduced = useSyncExternalStore(subscribeMotion, getMotion, getServerMotion);
+
+  const toggleMotion = () => {
+    const saved = pausedPosition.current;
+    pendingPosition.current = paused && saved && Math.abs(window.scrollY - saved.y) < 8
+      && saved.step === saved.position.section.querySelector(".chapter-controls [aria-current=step]")
+      ? saved.position
+      : readingPosition.current;
+    stopStoryScroll();
+    setPaused(value => !value);
+  };
+
+  useLayoutEffect(() => {
+    const position = pendingPosition.current;
+    pendingPosition.current = undefined;
+    if (!position) return;
+    restoreStory(position);
+    pausedPosition.current = paused ? {
+      position,
+      y: window.scrollY,
+      step: position.section.querySelector(".chapter-controls [aria-current=step]"),
+    } : undefined;
+  }, [paused]);
   useEffect(() => {
     scene.current.paused = paused; scene.current.reduced = reduced; scene.current.exploded = exploded;
-    if (paused || reduced) scene.current.pointer = { x: 0, y: 0 };
+    if (paused || reduced) scene.current.pointer = { x: 0, y: 0 };
+    scene.current.invalidate?.();
   }, [paused, reduced, exploded]);
   useEffect(() => {
     const el = root.current; if (!el) return;
     gsap.registerPlugin(ScrollTrigger);
     ScrollTrigger.config({ ignoreMobileResize: true });
+    let pendingResize = 0;
     const context = gsap.context(() => {
-      const all = Array.from(el.querySelectorAll<HTMLElement>("[data-chapter]"));
-      const updateChapter = (element: HTMLElement, progress: number) => {
-        const lead = element.querySelector<HTMLElement>(".project-mobile-prelude")?.offsetHeight ?? 0;
-        progress = Math.max(0, Math.min(1, (-element.getBoundingClientRect().top - lead) / Math.max(1, element.offsetHeight - lead - innerHeight)));
-        const c = Number(element.dataset.chapter); scene.current.chapter = c; scene.current.progress = progress; setChapter(c);
+      const storySections = Array.from(el.querySelectorAll<HTMLElement>("[data-chapter],#work,#toolkit,#contact"));
+      let regions: ReturnType<typeof measureStory>[] = [];
+      let layout = getStoryLayout();
+      const chapters = Array.from(el.querySelectorAll<HTMLElement>("[data-chapter]"), section => ({
+        section,
+        number: Number(section.dataset.chapter),
+        prelude: section.querySelector<HTMLElement>(".project-mobile-prelude"),
+        top: 0, height: 0, lead: 0,
+      }));
+      const opening = el.querySelector<HTMLElement>(".opening")!;
+      const scrub = .24;
+      const controls = el.querySelector<HTMLElement>(".persistent-controls");
+      const readout = el.querySelector(".progress-number");
+      const rail = el.querySelector<HTMLElement>(".phone-scroll-rail");
+      const useOpeningFallback = matchMedia("(min-width:901px), (min-height:600px), (max-width:600px) and (min-height:500px)");
+      let viewportHeight = innerHeight;
+      let openingBottom = 0;
+      let previousPercent = -1;
+      let worldTarget = 1;
+      scene.current.worldChapter = worldTarget;
+      const moveWorld = gsap.quickTo(scene.current, "worldChapter", {
+        duration: scrub,
+        ease: "power1.out",
+        onUpdate: () => scene.current.invalidate?.(),
+      });
+      const updatePage = (trigger: ScrollTrigger) => {
+        const y = trigger.scroll();
+        if (!pendingResize && layout === getStoryLayout()) {
+          readingPosition.current = captureStory(regions, y, viewportHeight);
+        }
+        const middle = y + viewportHeight / 2;
+        let current = chapters[0];
+        for (const candidate of chapters) {
+          if (candidate.top <= middle) current = candidate;
+          else break;
+        }
+
+        const progress = gsap.utils.clamp(0, 1, (y - current.top - current.lead) / Math.max(1, current.height - current.lead - viewportHeight));
+        if (scene.current.chapter !== current.number) {
+          scene.current.chapter = current.number;
+          setChapter(current.number);
+        }
+        scene.current.progress = progress;
+        if (!useOpeningFallback.matches || paused || reduced) {
+          scene.current.openingExit = Math.max(0, (y + viewportHeight - openingBottom) / viewportHeight);
+        }
+        if (paused || reduced) scene.current.openingProgress = 0;
+
+        if (!paused && !reduced) {
+          // Blend the field across the part of the viewport shared by adjacent scenes.
+          let nextWorld = 1;
+          const blend = viewportHeight * .64;
+          for (const candidate of chapters) {
+            if (candidate.number < 2) continue;
+            const fraction = gsap.utils.clamp(0, 1, (middle - candidate.top + blend / 2) / blend);
+            nextWorld += fraction * fraction * (3 - 2 * fraction);
+          }
+          if (worldTarget !== nextWorld) {
+            worldTarget = nextWorld;
+            moveWorld(nextWorld);
+          }
+        }
+        controls?.style.setProperty("--page-progress", String(trigger.progress));
+        rail?.style.setProperty("--read", String(trigger.progress));
+        const percent = Math.round(trigger.progress * 100);
+        if (percent !== previousPercent) {
+          previousPercent = percent;
+          if (readout) readout.textContent = String(percent).padStart(2, "0");
+          rail?.setAttribute("aria-valuenow", String(percent));
+        }
+        scene.current.invalidate?.();
       };
-      all.forEach(element => {
-        ScrollTrigger.create({ trigger: element, start: "top center", end: "bottom center", onEnter: self => updateChapter(element, self.progress), onEnterBack: self => updateChapter(element, self.progress) });
-        ScrollTrigger.create({ trigger: element, start: "top top", end: "bottom bottom", onUpdate: self => { if (self.isActive) updateChapter(element, self.progress); element.style.setProperty("--chapter-progress", String(self.progress)); } });
-      });
-      // Each project owns its story progress, independently of the global chapter rail.
-      // Keep the final stage on screen for a full third of the pinned scroll distance.
-      if (!paused && !reduced) gsap.utils.toArray<HTMLElement>(".project-story").forEach((project, index) => {
-        const syncStep = (progress: number) => {
-          if (innerWidth <= 800 && innerHeight < 600 && !(innerWidth <= 600 && innerHeight >= 500)) return;
-          const next = Math.min(2, Math.floor(progress * 3));
-          setSteps(previous => previous[index] === next ? previous : previous.map((value, i) => i === index ? next : value));
-        };
-        ScrollTrigger.create({ trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: () => "bottom top+=" + project.querySelector<HTMLElement>(".project-sticky")!.offsetHeight, invalidateOnRefresh: true, onUpdate: self => syncStep(self.progress), onRefresh: self => syncStep(self.progress) });
-      });
-      const syncOpening = () => {
-        const opening = el.querySelector<HTMLElement>(".opening");
-        if (!opening) return;
-        // Desktop arrival owns the shared camera/DOM clock in Mindset.
-        if (!matchMedia("(min-width:901px), (min-height:600px), (max-width:600px) and (min-height:500px)").matches || paused || reduced) scene.current.openingExit = Math.max(0, (innerHeight - opening.getBoundingClientRect().bottom) / innerHeight);
-        if (paused || reduced) scene.current.openingProgress = 0;
+      const measurePage = (trigger: ScrollTrigger) => {
+        const y = trigger.scroll();
+        viewportHeight = innerHeight;
+        const nextLayout = getStoryLayout();
+        const resizePosition = layout !== nextLayout ? readingPosition.current : undefined;
+        layout = nextLayout;
+        regions = storySections.map(section => measureStory(section, y, viewportHeight));
+        if (resizePosition && !pendingResize) {
+          pendingResize = requestAnimationFrame(() => {
+            pendingResize = 0;
+            stopStoryScroll();
+            restoreStory(resizePosition);
+            ScrollTrigger.update();
+          });
+        }
+        openingBottom = opening.getBoundingClientRect().bottom + y;
+        chapters.forEach(chapter => {
+          chapter.top = chapter.section.getBoundingClientRect().top + y;
+          chapter.height = chapter.section.offsetHeight;
+          chapter.lead = chapter.prelude?.offsetHeight ?? 0;
+        });
+        updatePage(trigger);
       };
-      ScrollTrigger.create({ start: 0, end: "max", onRefresh: syncOpening, onUpdate: self => { syncOpening(); el.style.setProperty("--page-progress", String(self.progress)); const readout = el.querySelector(".progress-number"); if (readout) readout.textContent = `${Math.round(self.progress * 100)}`.padStart(2, "0"); } });
+      ScrollTrigger.create({ start: 0, end: "max", onRefresh: measurePage, onUpdate: updatePage });
       if (!reduced && !paused) {
 
-        const intro = gsap.timeline({ onUpdate: () => { scene.current.openingProgress = intro.progress(); }, scrollTrigger: { trigger: ".opening", start: "top top", end: "bottom bottom", scrub: 0.65 } });
-        intro.fromTo(".hero-name .name-one", { yPercent: 0, opacity: 1 }, { yPercent: -35, opacity: 0, duration: 0.25, ease: "power2.inOut" }, 0.05)
-          .fromTo(".hero-name .name-two", { yPercent: 0, opacity: 1 }, { yPercent: -25, opacity: 0, duration: 0.25, ease: "power2.inOut" }, 0.09)
-          .fromTo(".hero-side, .hero-description, .hero-meta, .sculpture-controls", { y: 0, opacity: 1 }, { y: -30, opacity: 0, duration: 0.2 }, 0.02)
-          .fromTo(".opening-next", { y: 45, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: "power2.out" }, 0.38)
-          .fromTo(".system-caption", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.16 }, 0.68)
-          .to(".system-caption, .hero-scroll", { opacity: 0, y: -35, duration: 0.16 }, 0.84)
-          .to({}, { duration: 0.16 }, 0.84);
-        gsap.utils.toArray<HTMLElement>(".project-story").forEach(project => {
-          gsap.fromTo(project.querySelector(".demo-motion"), { rotateY: () => innerWidth <= 600 ? -3 : -12, rotateZ: () => innerWidth <= 600 ? 0 : -3, y: () => innerWidth <= 600 ? 14 : 45 }, { rotateY: () => innerWidth <= 600 ? 3 : 9, rotateZ: () => innerWidth <= 600 ? 0 : 2, y: () => innerWidth <= 600 ? -8 : -22, ease: "none", scrollTrigger: { trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: "bottom bottom", scrub: true, invalidateOnRefresh: true } });
-          gsap.fromTo(project.querySelector(".project-watermark"), { xPercent: 8 }, { xPercent: -20, ease: "none", scrollTrigger: { trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: "bottom bottom", scrub: true, invalidateOnRefresh: true } });
-          gsap.fromTo(project.querySelector(".project-atmosphere"), { scale: 0.7, opacity: 0.3 }, { scale: 1.5, opacity: 0.7, scrollTrigger: { trigger: project, start: () => `top+=${project.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight} top`, end: "bottom bottom", scrub: true, invalidateOnRefresh: true } });
-        });
-        gsap.fromTo(".journey-track", { x: 0 }, { x: () => -Math.max(0, (el.querySelector(".journey-track")?.scrollWidth ?? 0) - innerWidth * 0.88), ease: "none", scrollTrigger: { trigger: ".journey", start: "top top", end: "bottom bottom", scrub: 0.8, invalidateOnRefresh: true } });
-        gsap.utils.toArray<HTMLElement>(".reveal:not(.index-heading)").forEach(item => gsap.fromTo(item, { y: 45, opacity: 0.35 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: item, start: "top 92%", toggleActions: "play none none reverse" } }));
-        gsap.fromTo(".contact-big", { xPercent: -5 }, { xPercent: 0, scrollTrigger: { trigger: ".contact", start: "top bottom", end: "bottom bottom", scrub: 1 } });
+        const intro = gsap.timeline({
+          defaults: { ease: "sine.inOut" },
+          scrollTrigger: { trigger: opening, start: "top top", end: "bottom bottom", scrub },
+        });
+        intro
+          .fromTo(".hero-name .name-one", { yPercent: 0, opacity: 1 }, { yPercent: -26, opacity: 0, duration: .31 }, .06)
+          .fromTo(".hero-name .name-two", { yPercent: 0, opacity: 1 }, { yPercent: -22, opacity: 0, duration: .30 }, .10)
+          .fromTo(".hero-side, .hero-description, .hero-meta, .sculpture-controls",
+            { y: 0, opacity: 1 }, { y: -24, opacity: 0, duration: .25 }, .03)
+          // The next line rises into the remaining motion of the hero rather than waiting for an empty frame.
+          .fromTo(".opening-next", { y: 32, opacity: 0 }, { y: 0, opacity: 1, duration: .34 }, .24)
+          .fromTo(".system-caption", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .20 }, .60)
+          .to(".system-caption, .hero-scroll", { opacity: 0, y: -23, duration: .19 }, .81);
+        intro.eventCallback("onUpdate", () => {
+          scene.current.openingProgress = intro.progress();
+          scene.current.invalidate?.();
+        });
+
+        const desktop = gsap.matchMedia();
+        desktop.add("(min-width:601px)", () => {
+          const journey = el.querySelector<HTMLElement>(".journey")!;
+          const sticky = journey.querySelector<HTMLElement>(".journey-sticky")!;
+          const track = sticky.querySelector<HTMLElement>(".journey-track")!;
+          const progressFill = sticky.querySelector(".timeline-line > span");
+          const travel = () => {
+            const { paddingLeft, paddingRight } = getComputedStyle(sticky);
+            return Math.max(0, track.scrollWidth - (sticky.clientWidth - parseFloat(paddingLeft) - parseFloat(paddingRight)));
+          };
+          const timeline = gsap.timeline({
+            defaults: { duration: 1, ease: "none" },
+            scrollTrigger: { trigger: journey, start: "top top", end: "bottom bottom", scrub, invalidateOnRefresh: true },
+          });
+          timeline
+            .fromTo(track, { x: 0 }, { x: () => -travel() }, 0)
+            .fromTo(progressFill, { scaleX: 0 }, { scaleX: 1 }, 0)
+            .fromTo(sticky.querySelector(".journey-heading"), { y: 0 }, { y: -12 }, 0);
+        });
+
+        const settleSection = (trigger: string, target: string) => {
+          gsap.fromTo(target, { y: 24, opacity: .72 }, {
+            y: 0, opacity: 1, ease: "sine.out",
+            scrollTrigger: { trigger, start: "top 95%", end: "top 54%", scrub },
+          });
+        };
+        settleSection(".toolkit-top", ".toolkit-top > h2, .toolkit-top > p");
+        settleSection(".contact-prelude", ".contact-prelude");
+        settleSection(".contact-big", ".contact-big");
+
       }
     }, el);
     let disposed = false; document.fonts.ready.then(() => { if (!disposed) ScrollTrigger.refresh(); });
-    return () => { disposed = true; context.revert(); };
+    return () => { disposed = true; cancelAnimationFrame(pendingResize); context.revert(); };
   }, [reduced, paused]);
-  const jumpStep = (index: number, step: number) => {
-    const el = document.getElementById(projects[index].id); if (!el) return;
-    if ((innerWidth <= 800 && innerHeight < 600 && !(innerWidth <= 600 && innerHeight >= 500)) || reduced || paused) { setSteps(previous => previous.map((value, i) => i === index ? step : value)); return; }
-    const lead = el.querySelector<HTMLElement>(".project-mobile-prelude")!.offsetHeight;
-    const travel = Math.max(0, el.offsetHeight - lead - el.querySelector<HTMLElement>(".project-sticky")!.offsetHeight);
-    const y = el.getBoundingClientRect().top + scrollY + lead + travel * ((step + 0.5) / 3);
-    window.scrollTo({ top: y, behavior: reduced || paused ? "instant" : "smooth" });
-  };
   const pointer = (event: PointerEvent<HTMLElement>) => { if (paused || reduced || event.pointerType !== "mouse") return; scene.current.pointer = { x: (event.clientX / innerWidth - 0.5) * 2, y: (event.clientY / innerHeight - 0.5) * 2 }; };
+  useEffect(() => {
+    if (paused || reduced || resumeOpen || menuOpen || detail !== null) stopStoryScroll();
+  }, [paused, reduced, resumeOpen, menuOpen, detail]);
+
   const copyEmail = async () => { try { await navigator.clipboard.writeText(email); setCopied(true); } catch { location.href = `mailto:${email}`; } };
   const resetScene = () => { setExploded(false); scene.current.pointer = { x: 0, y: 0 }; };
   const selected = detail === null ? null : projects[detail];
@@ -158,7 +413,7 @@ export default function Home() {
     <World state={scene}/><div className="vignette" aria-hidden="true"/><div className="grain" aria-hidden="true"/>
     <header className="site-header"><a href="#home" className="brand" aria-label="A R Rajeev Chandar home"><span>A R RAJEEV<br/>CHANDAR<span className="brand-star">✳</span></span></a><span className="header-center"><span>BENGALURU / INDIA</span></span><div className="header-actions"><button className="resume-button magnetic" onClick={() => setResumeOpen(true)} onPointerMove={magnet} onPointerLeave={resetMagnet}>RÉSUMÉ</button><button className="menu-button" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className="menu-strokes" aria-hidden="true"><i/><i/><i/></span></button></div></header>
     <aside className="journey-rail" aria-label="Current chapter"><span className="rail-number">0{Math.min(chapter + 1, 7)}</span><span className="rail-line"/><span className="rail-name">{chapterNames[chapter]}</span></aside>
-    <PhoneScrollRail/><div className="persistent-controls"><button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
+    <PhoneScrollRail still={paused || reduced}/><div className="persistent-controls"><button onClick={toggleMotion} aria-pressed={paused} aria-label={paused ? "Resume motion" : "Pause motion"}>{paused || reduced ? <Play size={13}/> : <Pause size={13}/>}<span>{reduced ? "REDUCED MOTION" : paused ? "MOTION PAUSED" : "MOTION ON"}</span></button><span className="page-progress"><b className="progress-number">00</b> / 100</span></div>
     <section id="home" className="opening" data-chapter="0">
       <div className="opening-sticky">
         <div className="hero-meta hero-enter"><span>FULL-STACK DEVELOPER</span><span>PORTFOLIO / 2026</span></div>
@@ -173,7 +428,7 @@ export default function Home() {
     </section>
     <Mindset staticMotion={paused || reduced} scene={scene}/>
     <section id="work" className="work-index section-space"><div className="section-eyebrow"><span>02 / SELECTED SYSTEMS</span><span>FOUR CHALLENGES. FOUR WORLDS.</span></div><div className="index-heading reveal"><h2>BUILT TO<br/><em>DO SOMETHING.</em></h2><p>From private reflection to connected classrooms.<br/>Explore the idea, then get inside the engineering.</p></div><div className="project-index-list">{projects.map((project, i) => <a className="index-item" href={`#${project.id}`} key={project.id} style={{ "--project-color": project.color } as CSSProperties}><span>{project.number}</span><strong>{project.name}</strong><span className="index-subtitle">{project.short}</span><span className="index-category">{project.category}</span><ArrowUpRight/><span className="index-hover-word" aria-hidden="true">{i === 0 ? "REFLECT" : i === 1 ? "CONNECT" : i === 2 ? "VERIFY" : "PERSONALIZE"}</span></a>)}</div></section>
-    <div className="project-worlds">{projects.map((project, i) => <ProjectStory key={project.id} project={project} index={i} step={steps[i]} onStep={step => jumpStep(i, step)} onDetails={() => setDetail(i)}/>)}</div>
+    <div className="project-worlds">{projects.map((project, i) => <ProjectStory key={project.id} project={project} index={i} still={paused || reduced} onDetails={() => setDetail(i)}/>)}</div>
     <section id="experience" className="journey" data-chapter="6"><PhoneJourney still={paused || reduced}/><div className="journey-sticky"><div className="section-eyebrow"><span>03 / ALWAYS IN PROGRESS</span><span>THE JOURNEY SO FAR</span></div><div className="journey-heading"><h2>EDUCATION &amp;<br/><em>EXPERIENCE.</em></h2><p>From studying computing at Jain University<br/>to building an e-commerce capstone at Adobe.</p></div><div className="journey-track">{[
       { year: "2022", tag: "THE FOUNDATION", name: "Beginning the BCA.", text: "Started the Bachelor of Computer Applications program at Jain University.", footer: "JAIN UNIVERSITY" },
       { year: "2025", tag: "THE FOUNDATION, DEEPER", name: "BCA. Strong foundations.", text: "Completed a Bachelor of Computer Applications at Jain University with a CGPA of 9.230 / 10.0.", footer: "JAIN UNIVERSITY · 2022–2025" },

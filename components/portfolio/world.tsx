@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+import gsap from "gsap";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-export type SceneState = { chapter: number; progress: number; openingProgress: number; openingExit: number; mindsetProgress?: number; paused: boolean; reduced: boolean; exploded: boolean; pointer: { x: number; y: number }; };
+export type SceneState = { chapter: number; progress: number; openingProgress: number; openingExit: number; mindsetProgress?: number; worldChapter?: number; paused: boolean; reduced: boolean; exploded: boolean; pointer: { x: number; y: number }; invalidate?: () => void };
+
+const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 
 export default function World({ state }: { state: RefObject<SceneState> }) {
   const host = useRef<HTMLDivElement>(null);
@@ -17,7 +20,6 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     container.appendChild(renderer.domElement);
     renderer.domElement.setAttribute("aria-hidden", "true");
     container.dataset.renderer = "webgl";
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, innerWidth < 800 ? 1.25 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -81,9 +83,10 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       const node = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 1), acid);
       sculpture.add(node); return node;
     });
-    const arcs: THREE.Mesh[] = [];
+    const arcs: THREE.Mesh<THREE.TorusGeometry, THREE.MeshStandardMaterial>[] = [];
     for (let i = 0; i < 4; i++) {
       const arc = new THREE.Mesh(new THREE.TorusGeometry(2.5 + (i % 3) * 0.12, 0.012, 6, 60, Math.PI * 0.35), (i % 3 ? chrome : acid).clone());
+      arc.material.transparent = true;
       arc.rotation.set(i * 0.53, i * 0.31, i * 1.13); arcs.push(arc); sculpture.add(arc);
     }
     world.add(sculpture);
@@ -94,18 +97,42 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     // The same instanced geometry becomes a signal field, classroom network,
     // distributed ledger, and training waveform as the story progresses.
     const count = innerWidth < 800 ? 240 : 520;
+    const points = Array.from({ length: count }, (_, index) => {
+      const t = index / count;
+      const angle = t * Math.PI * 2 * 8;
+      const classroomRadius = 1.1 + (index % 4) * .55;
+      const phi = Math.acos(1 - 2 * t);
+      return {
+        t,
+        angle,
+        column: (t - .5) * 8,
+        scale: .7 + Math.sin(index * 1.7) * .3,
+        cos: Math.cos(angle),
+        sin: Math.sin(angle),
+        cosDouble: Math.cos(angle * 2),
+        sinDouble: Math.sin(angle * 2),
+        classroomRadius,
+        envelope: Math.sin(t * Math.PI) * 2,
+        sphereRadius: Math.sin(phi) * 3,
+        sphereDepth: Math.cos(phi) * 3,
+        azimuth: index * 2.39996,
+      };
+    });
     const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(0.058, 0.058, 0.058), acid, count);
     blocks.instanceMatrix.setUsage(THREE.DynamicDrawUsage); world.add(blocks);
     const nodeMaterial = new THREE.MeshPhysicalMaterial({ color: 0xd1ff40, metalness: 0.6, roughness: 0.22, clearcoat: 1 });
     const nodes: THREE.Mesh[] = [];
     const wireNodes: THREE.LineSegments[] = [];
+    const nodeGeometry = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+    const wireGeometry = new THREE.EdgesGeometry(nodeGeometry);
+    const wireMaterial = new THREE.LineBasicMaterial({ color: 0x93d8ff, transparent: true, opacity: 0.5 });
     for (let i = 0; i < 8; i++) {
-      const geometry = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-      const node = new THREE.Mesh(geometry, i % 2 ? chrome : nodeMaterial); nodes.push(node); world.add(node);
-      const wire = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x93d8ff, transparent: true, opacity: 0.5 })); wireNodes.push(wire); world.add(wire);
+      const node = new THREE.Mesh(nodeGeometry, i % 2 ? chrome : nodeMaterial); nodes.push(node); world.add(node);
+      const wire = new THREE.LineSegments(wireGeometry, wireMaterial); wireNodes.push(wire); world.add(wire);
     }
     const linePositions = new Float32Array(8 * 2 * 3);
-    const lineGeometry = new THREE.BufferGeometry(); lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3).setUsage(THREE.DynamicDrawUsage));
     const lines = new THREE.LineSegments(lineGeometry, new THREE.LineBasicMaterial({ color: 0xcaff30, transparent: true, opacity: 0.2 })); world.add(lines);
     const dustGeometry = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(330 * 3);
@@ -113,72 +140,160 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
     dustGeometry.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
     const dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: 0xdceac1, size: 0.022, transparent: true, opacity: 0.4 })); scene.add(dust);
     const dummy = new THREE.Object3D();
-    const morphPositions = new Float32Array(count * 3);
     const targetColor = new THREE.Color();
-    const colors = ["#d3ff40", "#d3ff40", "#c1abff", "#c7ff65", "#8dd8ff", "#ffad77", "#d3ff40"];
-    let raf = 0, time = 0, lastTime = 0, hidden = document.hidden, lost = false;
-    let chapter = 0, progress = 0, explosion = 0, openingProgress = 0, openingExit = 0;
+    const colors = ["#d3ff40", "#d3ff40", "#c1abff", "#c7ff65", "#8dd8ff", "#ffad77", "#d3ff40"].map(color => new THREE.Color(color));
+    const pointTarget = new THREE.Vector3();
+    const nodeTarget = new THREE.Vector3();
+    const stagedMindset = matchMedia("(min-width:901px), (min-height:600px), (max-width:600px) and (min-height:500px)");
+    let ticking = false, time = 0, lastTime = 0, lost = false;
+    let chapter = 0, progress = 0, explosion = 0, needsRender = true;
+    let staticFrame: Pick<SceneState, "chapter" | "progress" | "openingProgress" | "openingExit" | "exploded" | "worldChapter"> | undefined;
+    let clip = "", layer = "", passageLight = -1;
+    const setDestinationClip = (value: string) => {
+      if (destination && value !== clip) {
+        destination.style.clipPath = value;
+        clip = value;
+      }
+    };
     const destinationPosition = new THREE.Vector3(), destinationScale = new THREE.Vector3();
     const cameraPointer = new THREE.Vector2();
-    const about = document.getElementById('about');
-    const phoneStage = document.querySelector('.orbital-stage');
-    const desktopStage = document.querySelector('.mindset-studio');
-    const resize = () => { const w = container.clientWidth, h = container.clientHeight; renderer.setSize(w, h); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix(); };
-    const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container); resize();
-    const visibility = () => { hidden = document.hidden; };
-    const contextLost = (event: Event) => { event.preventDefault(); lost = true; container.dataset.renderer = "fallback"; };
-    const contextRestored = () => { lost = false; container.dataset.renderer = "webgl"; };
+    const about = document.getElementById("about");
+    const phoneStage = document.querySelector(".orbital-stage");
+    const desktopStage = document.querySelector(".mindset-studio");
+    let canvasWidth = 0, canvasHeight = 0, pixelRatio = 0;
+    let signalSin = 0, signalCos = 1, classroomSin = 0, classroomCos = 1;
+    const placePoint = (point: (typeof points)[number], mode: number, target: THREE.Vector3) => {
+      if (mode === 2) {
+        target.set(point.column, (point.sin * signalCos + point.cos * signalSin) * (.6 + progress * .8),
+          (point.cos * signalCos - point.sin * signalSin) * .85);
+      } else if (mode === 3) {
+        target.set(point.cos * point.classroomRadius, point.sin * point.classroomRadius,
+          (point.sinDouble * classroomCos + point.cosDouble * classroomSin) * .4);
+      } else if (mode === 4) {
+        target.set(point.column, Math.sin(point.t * Math.PI * 3 + progress * 2) * 1.3, point.cos * .25);
+      } else if (mode === 5) {
+        target.set(point.column, Math.sin(point.t * 38 + time) * point.envelope, point.cos * .6);
+      } else {
+        target.set(Math.cos(point.azimuth + time * .12) * point.sphereRadius,
+          Math.sin(point.azimuth + time * .12) * point.sphereRadius, point.sphereDepth);
+      }
+    };
+    container.style.opacity = "1";
+    const resize = (width: number, height: number) => {
+      if (!width || !height) return;
+      const ratio = Math.min(window.devicePixelRatio, width < 800 ? 1.25 : 1.75);
+      if (width === canvasWidth && height === canvasHeight && ratio === pixelRatio) return;
+      canvasWidth = width;
+      canvasHeight = height;
+      pixelRatio = ratio;
+      renderer.setDrawingBufferSize(width, height, ratio);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      needsRender = true;
+      requestFrame();
+    };
+    const requestFrame = () => {
+      if (ticking || document.hidden || lost) return;
+      ticking = true;
+      // GSAP updates scroll timelines before rendering their state to the canvas.
+      gsap.ticker.add(tick);
+    };
+    const suspend = () => {
+      if (ticking) gsap.ticker.remove(tick);
+      ticking = false;
+      lastTime = 0;
+    };
+    const visibility = () => {
+      if (document.hidden) suspend();
+      else requestFrame();
+    };
+    const contextLost = (event: Event) => {
+      event.preventDefault();
+      lost = true;
+      suspend();
+      setDestinationClip("none");
+      container.dataset.renderer = "fallback";
+    };
+    const contextRestored = () => {
+      lost = false;
+      needsRender = true;
+      container.dataset.renderer = "webgl";
+      requestFrame();
+    };
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
     renderer.domElement.addEventListener("webglcontextrestored", contextRestored);
     document.addEventListener("visibilitychange", visibility);
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      const dt = Math.min((now - lastTime) / 1000, 0.04); lastTime = now;
-      if (hidden || lost) return;
+    const tick = () => {
+      const now = performance.now();
       const s = state.current;
-      if (!s.paused && !s.reduced) time += dt;
-      const ease = s.reduced ? 1 : 1 - Math.exp(-dt * 7);
+      const still = s.paused || s.reduced;
+      // Use the scrubbed clock directly so the canvas follows the DOM on reversal.
+      const { openingProgress, openingExit } = s;
+      if (openingExit >= 1.05 && s.chapter >= 6 && s.progress > 0) {
+        // Journey, toolkit and contact cover the entire WebGL layer.
+        needsRender = true;
+        suspend();
+        return;
+      }
+      if (still && !needsRender && staticFrame?.chapter === s.chapter &&
+          staticFrame.progress === s.progress && staticFrame.openingProgress === openingProgress &&
+          staticFrame.openingExit === openingExit && staticFrame.exploded === s.exploded &&
+          staticFrame.worldChapter === s.worldChapter) {
+        suspend();
+        return;
+      }
+      staticFrame = still ? { chapter: s.chapter, progress: s.progress, openingProgress, openingExit, exploded: s.exploded, worldChapter: s.worldChapter } : undefined;
+      const dt = lastTime ? Math.min((now - lastTime) / 1000, .04) : 1 / 60;
+      lastTime = still ? 0 : now;
+      if (!still) time += dt;
+      const ease = still ? 1 : 1 - Math.exp(-dt * 7);
       chapter += (s.chapter - chapter) * ease;
       progress += (s.progress - progress) * ease;
       explosion += ((s.exploded ? 1 : 0) - explosion) * ease;
-      // GSAP already smooths this clock; smoothing again puts the ring behind
-      // the DOM reveal and makes changes of scroll direction feel discontinuous.
-      openingProgress = s.openingProgress;
-      openingExit = s.openingExit;
-      const mobile = innerWidth < 800;
-      const phone = innerWidth <= 600;
-      targetColor.set(colors[Math.min(s.chapter, 6)]);
-      acid.color.lerp(targetColor, ease); nodeMaterial.color.lerp(targetColor, ease); rim.color.lerp(targetColor, ease);
+      const width = innerWidth, height = innerHeight;
+      const mobile = width < 800;
+      const phone = width <= 600;
+      const stage = phone ? phoneStage : desktopStage;
+      const stageRect = !still && stagedMindset.matches && s.chapter <= 2 && openingProgress > .75 && about && about.getBoundingClientRect().bottom > 0
+        ? stage?.getBoundingClientRect() : undefined;
+      const connected = !!stageRect?.height;
+      const fieldChapter = THREE.MathUtils.clamp(still ? s.chapter : s.worldChapter ?? chapter, 0, colors.length - 1);
+      const fieldFrom = Math.floor(fieldChapter);
+      const fieldTo = Math.ceil(fieldChapter);
+      const blend = THREE.MathUtils.smoothstep(fieldChapter - fieldFrom, 0, 1);
+      targetColor.copy(colors[fieldFrom]).lerp(colors[fieldTo], blend);
+      acid.color.copy(targetColor); nodeMaterial.color.copy(targetColor); rim.color.copy(targetColor);
       acid.emissive.copy(acid.color).multiplyScalar(0.18);
       const entrance = s.reduced || s.paused ? 1 : 1 - Math.pow(1 - Math.min(time / 1.8, 1), 3);
       const unfold = THREE.MathUtils.smoothstep(openingProgress, 0.18, 0.72);
       const gateway = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingProgress, 0.76, 1);
-      const flight = s.reduced || s.paused ? 0 : THREE.MathUtils.smoothstep(openingExit, phone ? .08 : 0, 0.98);
+      const flight = still ? 0 : THREE.MathUtils.smoothstep(openingExit, phone ? .08 : 0, 0.98)
+        * THREE.MathUtils.smoothstep(gateway, .75, 1);
       const inPassage = gateway > 0 && openingExit < 1.05;
       // Keep the ring above the incoming surface from the start. Changing its
       // layer only after the morph begins made it disappear and then pop back.
-      const stage=phone?phoneStage:desktopStage;
-      const stageRect=stage?.getBoundingClientRect();
-      const connected=!s.paused&&!s.reduced&&!!stageRect&&stageRect.height>0&&openingProgress>.75&&(about?.getBoundingClientRect().bottom??0)>0;
-      container.style.zIndex=connected||openingExit<1.05?'4':'0';
-      container.style.opacity='1';
-      container.style.setProperty('--passage-light',String(.65 * flight));
-      container.style.setProperty('--passage-title','0');
+      const nextLayer = connected || openingExit < 1.05 ? "4" : "0";
+      if (nextLayer !== layer) {
+        layer = nextLayer;
+        container.style.zIndex = layer;
+      }
+      const nextLight = .65 * flight;
+      if (nextLight !== passageLight) {
+        passageLight = nextLight;
+        container.style.setProperty("--passage-light", String(passageLight));
+      }
       const settle=THREE.MathUtils.smootherstep(flight,0,.72);
       const mind=s.mindsetProgress??0;
       const layerBeat=THREE.MathUtils.smoothstep(mind,.22,.4)*(1-THREE.MathUtils.smoothstep(mind,.58,.8));
       // Open the ring into a wide lens, then pass through its uninterrupted centre.
-      const portrait = phone ? gateway : 0;
-      const apertureX = 1;
-      const apertureY = 1;
       const turn = Math.sin(time * 0.18) * 0.18;
+      cameraPointer.x += (s.pointer.x * .35 - cameraPointer.x) * ease;
+      cameraPointer.y += (-s.pointer.y * .25 - cameraPointer.y) * ease;
       sculpture.visible = connected || openingExit < (gateway ? 1.05 : 1.35);
       sculpture.scale.setScalar(mobile ? 0.63 : 0.88);
-      sculpture.scale.x *= apertureX;
-      sculpture.scale.y *= apertureY;
       sculpture.rotation.set(
-        THREE.MathUtils.lerp(0.35 + turn + s.pointer.y * 0.15, 0.12 * (1 - gateway), unfold),
-        THREE.MathUtils.lerp(0.5 + turn + s.pointer.x * 0.2 + (1 - entrance) * 0.7, -0.18 * (1 - gateway), unfold),
+        THREE.MathUtils.lerp(0.35 + turn - cameraPointer.y * .6, 0.12 * (1 - gateway), unfold),
+        THREE.MathUtils.lerp(0.5 + turn + cameraPointer.x * (4 / 7) + (1 - entrance) * 0.7, -0.18 * (1 - gateway), unfold),
         THREE.MathUtils.lerp(-0.3, 0, unfold)
       );
       // Exit with the opening's sticky viewport, like the typography, without
@@ -190,9 +305,9 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       knot.morphTargetInfluences![2]=0;
       if(connected&&stageRect){
         const fullHeight=2*Math.tan(THREE.MathUtils.degToRad(19))*(mobile?17:13);
-        const tx=((stageRect.left+stageRect.width/2)/innerWidth-.5)*fullHeight*camera.aspect;
-        const ty=(.5-(stageRect.top+stageRect.height/2)/innerHeight)*fullHeight;
-        const scale=Math.min(stageRect.width,stageRect.height)*.85/innerHeight*fullHeight/5.2;
+        const tx=((stageRect.left+stageRect.width/2)/width-.5)*fullHeight*camera.aspect;
+        const ty=(.5-(stageRect.top+stageRect.height/2)/height)*fullHeight;
+        const scale=Math.min(stageRect.width,stageRect.height)*.85/height*fullHeight/5.2;
         sculpture.position.lerp(destinationPosition.set(tx,ty,0),settle);
         sculpture.scale.lerp(destinationScale.set(scale,scale,scale),settle);
         sculpture.rotation.x=THREE.MathUtils.lerp(sculpture.rotation.x,.35+mind*.7,settle);
@@ -219,88 +334,104 @@ export default function World({ state }: { state: RefObject<SceneState> }) {
       });
       arcs.forEach((arc, i) => {
         arc.visible = gateway < 0.99 || connected;
-        const arcMaterial = arc.material as THREE.MeshPhysicalMaterial;
-        arcMaterial.transparent = true;
         const openingOpacity = phone ? 1 - THREE.MathUtils.smoothstep(gateway, .05, .55) : 1;
-        arcMaterial.opacity = openingOpacity*(1-gateway) + .25*THREE.MathUtils.smootherstep(flight,.72,1);
+        arc.material.opacity = openingOpacity*(1-gateway) + .25*THREE.MathUtils.smootherstep(flight,.72,1);
         arc.scale.setScalar(1 + gateway * 0.3);
         const a = i * Math.PI / 2;
         arc.position.set(Math.cos(a) * explosion * 0.65, Math.sin(a) * explosion * 0.65, Math.sin(i) * explosion * 0.3);
         arc.rotation.set(i * 0.53 * (1 - unfold), i * 0.31 * (1 - unfold), a + time * 0.025 + explosion);
       });
-      blocks.visible = s.chapter >= 2 && s.chapter < 6 && !inPassage;
-      const mode = Math.round(chapter);
-      const cloudScale = Math.min(Math.max(chapter - 0.9, 0), 1);
+      const fieldReveal = THREE.MathUtils.smoothstep(fieldChapter, 1, 2) * (1 - THREE.MathUtils.smoothstep(fieldChapter, 5, 6));
+      blocks.visible = fieldReveal > .002 && !inPassage;
       const right = mobile ? 0 : 1.9;
-      for (let i = 0; blocks.visible && i < count; i++) {
-        const t = i / count, a = t * Math.PI * 2 * 8;
-        let x = 0, y = 0, z = 0;
-        if (mode === 2) { // Multimodal signals braid into a common representation.
-          x = (t - 0.5) * 8; y = Math.sin(a + time * 0.7) * (0.6 + progress * 0.8); z = Math.cos(a + time * 0.7) * 0.85;
-        } else if (mode === 3) { // Classroom network distributes around its center.
-          const band = i % 4; x = Math.cos(a) * (1.1 + band * 0.55); y = Math.sin(a) * (1.1 + band * 0.55); z = Math.sin(a * 2 + time * 0.3) * 0.4;
-        } else if (mode === 4) { // Replicated blocks follow a document transaction path.
-          x = (t - 0.5) * 8; y = Math.sin(t * Math.PI * 3 + progress * 2) * 1.3; z = Math.cos(a) * 0.25;
-        } else if (mode === 5) { // A rhythm field represents personalized routines.
-          x = (t - 0.5) * 8; y = Math.sin(t * 38 + time) * Math.sin(t * Math.PI) * 2; z = Math.cos(a) * 0.6;
-        } else {
-          const phi = Math.acos(1 - 2 * t), theta = i * 2.39996;
-          x = Math.cos(theta + time * 0.12) * Math.sin(phi) * 3; y = Math.sin(theta + time * 0.12) * Math.sin(phi) * 3; z = Math.cos(phi) * 3;
+      if (blocks.visible) {
+        signalSin = Math.sin(time * .7);
+        signalCos = Math.cos(time * .7);
+        classroomSin = Math.sin(time * .3);
+        classroomCos = Math.cos(time * .3);
+        for (let i = 0; i < count; i++) {
+          const point = points[i];
+          placePoint(point, fieldFrom, dummy.position);
+          if (fieldFrom !== fieldTo) {
+            placePoint(point, fieldTo, pointTarget);
+            dummy.position.lerp(pointTarget, blend);
+          }
+          dummy.position.x += right;
+          dummy.position.z -= 1;
+          dummy.rotation.set(point.angle, time * .2, point.angle * .4);
+          dummy.scale.setScalar(point.scale * fieldReveal);
+          dummy.updateMatrix();
+          blocks.setMatrixAt(i, dummy.matrix);
         }
-        const m = i * 3;
-        morphPositions[m] += (x * cloudScale + right - morphPositions[m]) * ease;
-        morphPositions[m + 1] += (y * cloudScale - morphPositions[m + 1]) * ease;
-        morphPositions[m + 2] += (z - 1 - morphPositions[m + 2]) * ease;
-        dummy.position.set(morphPositions[m], morphPositions[m + 1], morphPositions[m + 2]);
-        dummy.rotation.set(a, time * 0.2, a * 0.4);
-        dummy.scale.setScalar((0.7 + Math.sin(i * 1.7) * 0.3) * cloudScale);
-        dummy.updateMatrix(); blocks.setMatrixAt(i, dummy.matrix);
+        blocks.instanceMatrix.needsUpdate = true;
       }
-      if (blocks.visible) blocks.instanceMatrix.needsUpdate = true;
-      const nodeVisibility = s.chapter < 6 && (mode === 3 || mode === 4);
+      const nodeReveal = THREE.MathUtils.smoothstep(fieldChapter, 2.4, 3) * (1 - THREE.MathUtils.smoothstep(fieldChapter, 4, 4.6));
+      const nodeVisibility = nodeReveal > .002 && !inPassage;
+      const nodeBlend = THREE.MathUtils.smoothstep(fieldChapter, 3, 4);
       nodes.forEach((node, i) => {
+        const wire = wireNodes[i];
+        node.visible = nodeVisibility;
+        wire.visible = nodeVisibility;
+        if (!nodeVisibility) return;
         const a = (i / 8) * Math.PI * 2 + time * 0.09;
-        node.visible = nodeVisibility; wireNodes[i].visible = nodeVisibility;
-        if (mode === 4) node.position.set((i - 3.5) * 0.94 + right, Math.sin(i * 0.6 + progress * 2) * 1.3, -0.7);
-        else node.position.set(Math.cos(a) * 2.6 + right, Math.sin(a) * 2.6, Math.sin(a) * 0.35);
-        node.rotation.set(time * 0.12 + i * 0.3, time * 0.16, 0.15); node.scale.setScalar(0.7 + progress * 0.2);
-        wireNodes[i].position.copy(node.position); wireNodes[i].rotation.copy(node.rotation); wireNodes[i].scale.copy(node.scale).multiplyScalar(1.2);
-        const next = (i + 1) % 8; const p = node.position;
-        linePositions.set([p.x, p.y, p.z, nodes[next].position.x, nodes[next].position.y, nodes[next].position.z], i * 6);
+        node.position.set(Math.cos(a) * 2.6 + right, Math.sin(a) * 2.6, Math.sin(a) * 0.35);
+        nodeTarget.set((i - 3.5) * 0.94 + right, Math.sin(i * 0.6 + progress * 2) * 1.3, -0.7);
+        node.position.lerp(nodeTarget, nodeBlend);
+        node.rotation.set(time * 0.12 + i * 0.3, time * 0.16, 0.15);
+        node.scale.setScalar((0.7 + progress * 0.2) * nodeReveal);
+        wire.position.copy(node.position); wire.rotation.copy(node.rotation); wire.scale.copy(node.scale).multiplyScalar(1.2);
       });
-      lines.visible = nodeVisibility; lineGeometry.attributes.position.needsUpdate = true;
-      // A deterministic dolly, with zero velocity at both ends. Do not lerp
-      // yesterday's camera towards a second target: that jumps on reversal.
-      const travel = 0;
-      const align = 0;
-      const pointerWeight = (1-gateway) * (s.reduced ? 0 : 1);
-      cameraPointer.x += (s.pointer.x*.35-cameraPointer.x)*ease;
-      cameraPointer.y += (-s.pointer.y*.25-cameraPointer.y)*ease;
-      camera.position.x = cameraPointer.x*pointerWeight + (mobile ? 0 : 3.25)*align;
-      camera.position.y = cameraPointer.y*pointerWeight + .1*align;
-      camera.position.z = THREE.MathUtils.lerp(mobile ? 17 : 13, 4, travel);
-      camera.lookAt(THREE.MathUtils.lerp(0, mobile ? 0 : 3.25, align), 0.1 * align, camera.position.z - 13);
+      lines.visible = nodeVisibility;
+      if (nodeVisibility) {
+        lines.material.opacity = .2 * nodeReveal;
+        nodes.forEach((node, i) => {
+          node.position.toArray(linePositions, i * 6);
+          nodes[(i + 1) % nodes.length].position.toArray(linePositions, i * 6 + 3);
+        });
+        lineGeometry.attributes.position.needsUpdate = true;
+      }
+      const pointerWeight = (1 - gateway) * (still ? 0 : 1);
+      camera.position.set(cameraPointer.x * pointerWeight, cameraPointer.y * pointerWeight, mobile ? 17 : 13);
+      camera.lookAt(0, 0, camera.position.z - 13);
       world.rotation.z = Math.sin(time * 0.12) * 0.035 * (1-gateway);
       portal.visible = connected && flight > 0 && flight < .72;
-      if (connected) {
+      if (portal.visible) {
         const advance = THREE.MathUtils.smootherstep(flight,0,.72);
         portal.scale.setScalar(mobile ? .63 : .88);
         portal.position.set((mobile ? 0 : 3.25)*(1-advance), .1*(1-advance), camera.position.z*advance);
+      }
+      if (connected && destination && flight > 0 && flight < .7) {
         camera.updateMatrixWorld();
         portalCenter.copy(portal.position);
         portalCenter.z = Math.min(portalCenter.z,camera.position.z-.01);
         portalCenter.project(camera);
         const depth = Math.max(.01,camera.position.z-portal.position.z);
-        const radius = 1.92*portal.scale.x/depth/(2*Math.tan(THREE.MathUtils.degToRad(19)))*container.clientHeight;
-        if (destination) destination.style.clipPath = flight >= .7 ? 'none' : flight === 0 ? 'circle(0px at 50% 50%)' : `circle(${Math.min(radius,Math.hypot(innerWidth,innerHeight)*2)}px at ${(portalCenter.x*.5+.5)*innerWidth}px ${(-portalCenter.y*.5+.5)*innerHeight}px)`;
-      } else if(destination) destination.style.clipPath = s.paused||s.reduced||openingExit>=1 ? 'none' : 'circle(0px at 50% 50%)';
+        const aperture = THREE.MathUtils.smootherstep(flight, 0, .09);
+        const radius = 1.92 * portal.scale.x / depth / (2 * Math.tan(THREE.MathUtils.degToRad(19))) * canvasHeight * aperture;
+        const rect = destination.getBoundingClientRect();
+        const x = (portalCenter.x * .5 + .5) * canvasWidth - rect.left;
+        const y = (-portalCenter.y * .5 + .5) * canvasHeight - rect.top;
+        const safeRadius = Math.min(radius, Math.hypot(canvasWidth, canvasHeight) * 2);
+        setDestinationClip(`circle(${safeRadius}px at ${x}px ${y}px)`);
+      } else {
+        const open = connected ? flight >= .7 : still || !stagedMindset.matches || openingExit >= 1;
+        setDestinationClip(open ? "none" : "circle(0px at 50% 50%)");
+      }
       renderer.render(scene, camera);
+      needsRender = false;
+      if (still) suspend();
     };
-    raf = requestAnimationFrame(tick);
+    const input = state.current;
+    input.invalidate = requestFrame;
+    resize(container.clientWidth, container.clientHeight);
+    const resizeObserver = new ResizeObserver(([entry]) => resize(entry.contentRect.width, entry.contentRect.height));
+    resizeObserver.observe(container);
+    requestFrame();
     return () => {
       if(destination) destination.style.removeProperty('clip-path');
 
-      cancelAnimationFrame(raf); resizeObserver.disconnect(); document.removeEventListener("visibilitychange", visibility);
+      if (input.invalidate === requestFrame) delete input.invalidate;
+      suspend(); resizeObserver.disconnect(); document.removeEventListener("visibilitychange", visibility);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost); renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
       const materials = new Set<THREE.Material>(); const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.geometry) geometries.add(mesh.geometry); if (mesh.material) (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(m => materials.add(m)); });

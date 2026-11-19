@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { addBeatCrossfade } from "./beat-crossfade";
+import { scrollStoryTo } from "./story-scroll";
 import { ArrowUpRight, Check, Layers, Mic, GraduationCap, Trophy, Briefcase } from "lucide-react";
 
 // Phone scenes are separate compositions, not scaled desktop screenshots.
@@ -40,12 +42,16 @@ export function PhoneMindset({ active, still }: { active: number; still: boolean
         <circle className="orbital-guide" cx="180" cy="180" r="158" fill="none" stroke="#b8d68e" strokeOpacity=".3" strokeWidth=".7" strokeDasharray="100 32 3 32"/>
         <circle className="orbital-core" cx="180" cy="180" r="6" fill="#d3ff40"/>
       </svg>
-      <div className="orbital-caption"><span>{['A SINGLE STARTING POINT','ONE CONNECTED SYSTEM','IDEAS, MADE TANGIBLE'][active]}</span><b>0{active+1}</b></div>
+      <div className="orbital-caption">
+        {["A SINGLE STARTING POINT", "ONE CONNECTED SYSTEM", "IDEAS, MADE TANGIBLE"].map((label, index) => (
+          <span key={label} data-active={active === index}><span>{label}</span><b>0{index + 1}</b></span>
+        ))}
+      </div>
     </div>
     <div className="orbital-evidence">
-      <div className="orbital-note" aria-hidden={active!==0}><span>01 / OBSERVE</span><p>Less friction.<br/><strong>A clearer experience.</strong></p></div>
-      <div className="orbital-note" aria-hidden={active!==1}><span>02 / CONNECT</span><div className="orbital-stack"><span>Interface</span><i/><span>Logic</span><i/><span>Data</span></div></div>
-      <div className="orbital-projects" aria-hidden={active!==2} inert={!still&&active!==2}>
+      <div className="orbital-note" aria-hidden={!still&&active!==0}><span>01 / OBSERVE</span><p>Less friction.<br/><strong>A clearer experience.</strong></p></div>
+      <div className="orbital-note" aria-hidden={!still&&active!==1}><span>02 / CONNECT</span><div className="orbital-stack"><span>Interface</span><i/><span>Logic</span><i/><span>Data</span></div></div>
+      <div className="orbital-projects" aria-hidden={!still&&active!==2} inert={!still&&active!==2}>
        {[["solenne","Solenne","Reflection"],["cortexedu","CortexEdu","Learning"],["dochain","DoChain","Documents"],["ai-fitness","AI Fitness","Personalization"]].map(([id,name,label],i)=><a href={`#${id}`} key={id}><span>0{i+1}</span><strong>{name}</strong><small>{label}</small></a>)}
       </div>
     </div>
@@ -63,30 +69,48 @@ const milestones = [
 export function PhoneJourney({ still }: { still: boolean }) {
   still = useSyncExternalStore(subscribeShortPhone, getShortPhone, getServerShortPhone) || still;
   const host = useRef<HTMLDivElement>(null);
+  const track = useRef<ScrollTrigger | undefined>(undefined);
   const [active, setActive] = useState(0);
   useEffect(() => {
     if (!host.current || still) return;
     gsap.registerPlugin(ScrollTrigger);
     const media = gsap.matchMedia();
     media.add("(max-width:600px) and (min-height:500px)", () => {
-      const el=host.current!;
-      const cards=el.querySelectorAll(".phone-milestone");
-      const timeline=gsap.timeline({scrollTrigger:{trigger:el.parentElement, start:"top top",end:"bottom bottom",scrub:.28,invalidateOnRefresh:true},onUpdate:()=>setActive(Math.min(4,Math.floor(timeline.progress()*5)))});
-      cards.forEach((card,i)=>{
-        if(i) timeline.fromTo(card,{y:80,z:-200,rotateX:12,opacity:0},{y:0,z:0,rotateX:0,opacity:1,duration:.055,ease:"power2.out"},i/5);
-        if(i<4) timeline.to(card,{y:-55,z:100,rotateX:-7,opacity:0,duration:.045,ease:"power2.in"},(i+1)/5-.045);
+      const el = host.current!;
+      const cards = el.querySelectorAll<HTMLElement>(".phone-milestone");
+      const timeline = gsap.timeline();
+      addBeatCrossfade(timeline, cards, {
+        enter: { y: 24, z: -45, rotateX: 4, opacity: 0 },
+        rest: { y: 0, z: 0, rotateX: 0, opacity: 1 },
+        exit: { y: -20, z: 26, rotateX: -3, opacity: 0 },
+      }, .09);
+      timeline.to(el.querySelector(".phone-milestone-orbit"), { rotate: 210, duration: 1, ease: "none" }, 0);
+      timeline.to(el.querySelector(".phone-journey-progress"), { scaleX: 1, duration: 1, ease: "none" }, 0);
+      let previous = -1;
+      timeline.eventCallback("onUpdate", () => {
+        const next = Math.min(cards.length - 1, Math.floor(timeline.progress() * cards.length));
+        if (next !== previous) {
+          previous = next;
+          setActive(next);
+        }
       });
-      timeline.to(el.querySelector(".phone-milestone-orbit"),{rotate:210,duration:1,ease:"none"},0);
-      timeline.to(el.querySelector(".phone-journey-progress"),{scaleX:1,duration:1,ease:"none"},0);
-      return ()=>timeline.kill();
+      track.current = ScrollTrigger.create({
+        trigger: el.parentElement, animation: timeline, start: "top top",
+        end: () => `bottom top+=${el.offsetHeight}`, scrub: .24,
+      });
+      return () => { track.current = undefined; };
     });
     return ()=>media.revert();
   },[still]);
   const jump=(index:number)=>{
-    const el=host.current?.parentElement;
-    if(!el) return;
-    if(still || innerHeight<500){host.current?.querySelectorAll<HTMLElement>(".phone-milestone")[index]?.scrollIntoView({behavior:"smooth",block:"center"});return;}
-    window.scrollTo({top:el.getBoundingClientRect().top+scrollY+(el.offsetHeight-innerHeight)*(index+.35)/5,behavior:"smooth"});
+    const trigger = track.current;
+    if (!trigger) {
+      setActive(index);
+      host.current?.querySelectorAll<HTMLElement>(".phone-milestone")[index]?.scrollIntoView({ behavior: "instant", block: "center" });
+      return;
+    }
+    const progress = (index + .5) / milestones.length;
+    scrollStoryTo(trigger.start + (trigger.end - trigger.start) * progress);
   };
   return <div ref={host} className="phone-journey" data-still={still}>
     <header><span className="phone-eyebrow">03 / THE JOURNEY</span><h2>Keep learning.<br/><em>Keep building.</em></h2></header>

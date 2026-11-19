@@ -156,7 +156,7 @@
  html{scrollbar-width:none}html::-webkit-scrollbar{display:none}
  .phone-scroll-rail{display:block;position:fixed;right:0;top:24%;height:48%;width:20px;z-index:35;touch-action:none;cursor:ns-resize;outline-offset:-3px}
  .phone-rail-track{position:absolute;right:5px;top:0;bottom:0;width:2px;background:#8c9c9340;border-radius:3px;box-shadow:0 0 0 1px #10161255}
- .phone-rail-track>i{position:absolute;top:0;left:0;right:0;height:var(--read);background:#bed4c3;border-radius:3px}.phone-rail-track>b{position:absolute;top:clamp(0px,var(--read),calc(100% - 24px));right:-2px;width:6px;height:24px;border-radius:5px;background:#e2eadc;box-shadow:0 0 12px #c7efbc44}
+ .phone-rail-track>i{position:absolute;top:0;left:0;right:0;height:100%;transform-origin:top;transform:scaleY(var(--read,0));background:#bed4c3;border-radius:3px}.phone-rail-track>b{position:absolute;top:calc((100% - 24px) * var(--read,0));right:-2px;width:6px;height:24px;border-radius:5px;background:#e2eadc;box-shadow:0 0 12px #c7efbc44}
  .phone-rail-label{position:absolute;right:3px;bottom:-43px;writing-mode:vertical-rl;font:6px var(--mono);letter-spacing:.15em;color:#aebcaf;pointer-events:none}
  .portfolio .project-mobile-prelude{display:none!important}
  .portfolio .project-sticky{padding-left:22px!important;padding-right:26px!important}
@@ -215,7 +215,7 @@
  .phone-scroll-rail{top:35%;height:30%;width:18px;right:0;opacity:.65}
  .phone-rail-track{right:3px;width:2px;background:#bdc6be20;box-shadow:none}
  .phone-rail-track>i,.phone-rail-label{display:none}
- .phone-rail-track>b{right:0;width:2px;height:22px;top:clamp(0px,var(--read),calc(100% - 22px));background:#b7c6bc;box-shadow:none}
+ .phone-rail-track>b{right:0;width:2px;height:22px;top:calc((100% - 22px) * var(--read,0));background:#b7c6bc;box-shadow:none}
  .phone-scroll-rail:active,.phone-scroll-rail:focus-visible{opacity:1}
  .portfolio .project-topline{padding:0 0 10px;border-bottom:1px solid #bdc8c01f;min-height:35px;align-items:center}
  .portfolio .project-topline>span:first-child{display:flex;align-items:baseline;gap:9px;font-size:10px;color:#7f9187}
@@ -265,8 +265,8 @@ html{scrollbar-width:none}html::-webkit-scrollbar{display:none}
 .phone-scroll-rail{display:block;position:fixed;right:0;top:30%;height:40%;width:22px;z-index:35;touch-action:none;cursor:ns-resize;opacity:.8;outline-offset:-3px}
 .phone-rail-track{position:absolute;right:7px;top:0;bottom:0;width:2px;background:#b5c8b824;border-radius:2px;box-shadow:none}
 .phone-rail-track:before{content:'';position:absolute;inset:0 -3px;background:repeating-linear-gradient(to bottom,#9bb09e66 0 1px,transparent 1px 28px);opacity:.35}
-.phone-rail-track>i{display:block;position:absolute;top:0;left:0;width:2px;height:var(--read);background:#c6df9a;border-radius:2px}
-.phone-rail-track>b{position:absolute;right:-2px;width:6px;height:28px;top:clamp(0px,var(--read),calc(100% - 28px));border-radius:3px;background:#dae8c3;box-shadow:0 0 10px #d0eeb122}
+.phone-rail-track>i{display:block;position:absolute;top:0;left:0;width:2px;height:100%;transform-origin:top;transform:scaleY(var(--read,0));background:#c6df9a;border-radius:2px}
+.phone-rail-track>b{position:absolute;right:-2px;width:6px;height:28px;top:calc((100% - 28px) * var(--read,0));border-radius:3px;background:#dae8c3;box-shadow:0 0 10px #d0eeb122}
 .phone-rail-label{display:none}.phone-scroll-rail:focus-visible{outline:1px solid #d2edaa;opacity:1}
 .portfolio .header-actions .resume-button{min-width:0;gap:0;padding-left:24px;padding-right:24px}
 /* The destination retains the same architectural grid as the ring passage. */
@@ -274,7 +274,7 @@ html{scrollbar-width:none}html::-webkit-scrollbar{display:none}
 @media(max-width:600px){
  .portfolio .header-actions .resume-button{padding:0 17px!important;min-width:85px!important;font-size:11px!important}
  .phone-scroll-rail{top:33%;height:34%;width:18px}.phone-rail-track{right:4px}
- .phone-rail-track>b{width:4px;right:-1px;height:24px}
+ .phone-rail-track>b{width:4px;right:-1px;height:24px;top:calc((100% - 24px) * var(--read,0))}
  .phone-project-0{background:linear-gradient(145deg,#242a2b,#161b1e);border-color:#a7b5b833}
  .phone-project-0 .phone-project-art{perspective:900px;align-items:stretch}
  .journal-sequence{display:flex;flex-direction:column;width:100%;height:100%;padding:15px;background:#e7e9e2;color:#28332f;border-radius:8px;box-shadow:0 8px 0 #81958e22;overflow:hidden}

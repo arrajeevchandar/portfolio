@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEve
 import { ArrowUpRight, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
+import { stopStoryScroll } from "./story-scroll";
 import "./chapter-navigation.css";
 const chapters = [
   ["home", "Introduction", "The human behind the code", "01"],
@@ -28,18 +29,35 @@ function navigateGrid(event: KeyboardEvent<HTMLElement>) {
   event.preventDefault();
   links[Math.max(0, Math.min(links.length - 1, next[event.key]))].focus();
 }
-function ChapterStage({ close, visit }: { close: () => void; visit: (id: string) => void }) {
+function ChapterStage({ close, visit }: { close: () => void; visit: (id: string) => boolean }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
-  const active = hovered ?? focused;
+  const [selected, setSelected] = useState<number | null>(null);
+  const active = selected ?? hovered ?? focused;
   const stage = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const trigger = document.querySelector(".menu-button")?.getBoundingClientRect();
-    if (trigger && stage.current) {
-      stage.current.style.setProperty("--menu-x", `${trigger.left + trigger.width / 2}px`);
-      stage.current.style.setProperty("--menu-y", `${trigger.top + trigger.height / 2}px`);
-    }
-  }, []);
+  useLayoutEffect(() => {
+    const canvas = stage.current;
+    const trigger = document.querySelector(".menu-button");
+    const closeButton = canvas?.querySelector(".cinema-close");
+    if (!canvas || !trigger || !closeButton) return;
+
+    const positionIris = () => {
+      const menuBounds = trigger.getBoundingClientRect();
+      const closeBounds = closeButton.getBoundingClientRect();
+      const centerX = menuBounds.left + menuBounds.width / 2;
+      const centerY = menuBounds.top + menuBounds.height / 2;
+      const xEdge = Math.max(Math.abs(closeBounds.left - centerX), Math.abs(closeBounds.right - centerX));
+      const yEdge = Math.max(Math.abs(closeBounds.top - centerY), Math.abs(closeBounds.bottom - centerY));
+      canvas.style.setProperty("--menu-x", `${centerX}px`);
+      canvas.style.setProperty("--menu-y", `${centerY}px`);
+      canvas.style.setProperty("--menu-start-radius", `${Math.ceil(Math.hypot(xEdge, yEdge)) + 2}px`);
+    };
+    positionIris();
+    const observer = new ResizeObserver(positionIris);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
   return <div className="chapter-canvas" ref={stage}>
     <header className="theatre-header">
       <div><span className="cinema-eyebrow">A R RAJEEV CHANDAR</span><DialogTitle>Choose your chapter<span>.</span></DialogTitle></div>
@@ -53,7 +71,13 @@ function ChapterStage({ close, visit }: { close: () => void; visit: (id: string)
         onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(i); }}
         onFocus={() => { setHovered(null); setFocused(i); }}
         onBlur={() => setFocused(null)}
-        onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) visit(id); }}
+        onClick={event => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          if (visit(id)) {
+            event.preventDefault();
+            setSelected(i);
+          }
+        }}
       >
         <div className="chapter-door-face">
           <span className="door-rule" aria-hidden="true"/>
@@ -69,23 +93,71 @@ function ChapterStage({ close, visit }: { close: () => void; visit: (id: string)
 }
 
 export default function ChapterNavigation({ open, onOpenChange, still = false }: { open: boolean; onOpenChange: (open: boolean) => void; still?: boolean }) {
-  const destination = useRef<string | null>(null);
+  const destination = useRef<HTMLElement | null>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const handoffFrame = useRef(0);
+  useLayoutEffect(() => () => cancelAnimationFrame(handoffFrame.current), []);
   const changeOpen = (value: boolean) => {
-    if (!value) {
-      const canvas = document.querySelector<HTMLElement>(".chapter-canvas");
-      if (canvas) canvas.style.setProperty("--iris-start", getComputedStyle(canvas).clipPath);
-      document.querySelectorAll<HTMLElement>(".chapter-door-face").forEach(face => {
-        face.style.setProperty("--door-exit-start", getComputedStyle(face).transform);
-        face.style.setProperty("--door-exit-opacity", getComputedStyle(face).opacity);
+    if (!value && !still && dialog.current) {
+      const canvas = dialog.current.querySelector<HTMLElement>(".chapter-canvas");
+      const iris = canvas ? getComputedStyle(canvas).clipPath : "";
+      const doors = Array.from(dialog.current.querySelectorAll<HTMLElement>(".chapter-door-face"), face => {
+        const { transform, opacity } = getComputedStyle(face);
+        return { face, transform, opacity };
       });
+      const labels = Array.from(dialog.current.querySelectorAll<HTMLElement>(".door-type, .theatre-header > div, .theatre-footer"), label => {
+        const { transform, opacity } = getComputedStyle(label);
+        return { label, transform, opacity };
+      });
+      canvas?.style.setProperty("--iris-start", iris);
+      for (const { face, transform, opacity } of doors) {
+        face.style.setProperty("--door-exit-start", transform);
+        face.style.setProperty("--door-exit-opacity", opacity);
+      }
+      for (const { label, transform, opacity } of labels) {
+        label.style.setProperty("--label-exit-transform", transform);
+        label.style.setProperty("--label-exit-opacity", opacity);
+      }
     }
     onOpenChange(value);
   };
-  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent className="chapter-theatre chapter-directory top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
-    onOpenAutoFocus={event => { event.preventDefault(); document.querySelector<HTMLButtonElement>(".chapter-theatre .cinema-close")?.focus({ preventScroll: true }); }}
+  const visit = (id: string) => {
+    if (destination.current) return true;
+    const section = document.getElementById(id);
+    if (!section) return false;
+
+    destination.current = section;
+    stopStoryScroll();
+    if (!still && dialog.current) dialog.current.dataset.navigating = "true";
+    changeOpen(false);
+
+    const land = () => {
+      const hash = `#${id}`;
+      if (location.hash !== hash) location.hash = hash;
+      if (id === "about") {
+        // Mindset begins with an overlap for visitors approaching through the ring.
+        const overlap = -parseFloat(getComputedStyle(section).marginTop);
+        if (overlap > 0) {
+          window.scrollTo({ top: scrollY + section.getBoundingClientRect().top + overlap, behavior: "instant" });
+          return;
+        }
+      }
+      section.scrollIntoView({ behavior: "instant", block: "start" });
+    };
+    if (still) land();
+    else handoffFrame.current = requestAnimationFrame(land);
+    return true;
+  };
+
+  return <Dialog open={open} onOpenChange={changeOpen}><DialogContent ref={dialog} className="chapter-theatre chapter-directory top-0 left-0 translate-x-0 translate-y-0" data-still={still} showCloseButton={false}
+    onOpenAutoFocus={event => {
+      event.preventDefault();
+      dialog.current?.removeAttribute("data-navigating");
+      dialog.current?.querySelector<HTMLButtonElement>(".cinema-close")?.focus({ preventScroll: true });
+    }}
     onCloseAutoFocus={event => {
       event.preventDefault();
-      const section = destination.current ? document.getElementById(destination.current) : null;
+      const section = destination.current;
       destination.current = null;
       if (section) {
         if (!section.hasAttribute("tabindex")) {
@@ -97,6 +169,6 @@ export default function ChapterNavigation({ open, onOpenChange, still = false }:
         document.querySelector<HTMLButtonElement>(".menu-button")?.focus({ preventScroll: true });
       }
     }}>
-    <ChapterStage close={() => changeOpen(false)} visit={id => { destination.current = id; changeOpen(false); }}/>
+    <ChapterStage close={() => changeOpen(false)} visit={visit}/>
   </DialogContent></Dialog>;
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { addBeatCrossfade } from "./beat-crossfade";
+import { scrollStoryTo } from "./story-scroll";
 import { ArrowDown } from "lucide-react";
 import { SolenneDemo, CortexDemo } from "./demos";
 import type { SceneState } from "./world";
@@ -14,19 +16,47 @@ const beats = [
   { word: "Let the work speak.", lead: "THE RESULT", label: "Build", text: "Four projects. Different constraints. The same attention to how the pieces fit together.", note: "Explore the experience, then look closer at the decisions behind it." },
 ];
 
+const phoneQuery = "(max-width:600px)";
+const stagedQuery = "(min-width:901px), (min-height:600px), (max-width:600px) and (min-height:500px)";
+const stackedQuery = "(min-width:601px) and (max-width:900px) and (max-height:599px), (max-width:600px) and (max-height:499px)";
+
+function getArrivalDistance(element: HTMLElement) {
+  // The chapter overlaps the introduction by one stable viewport (100svh).
+  return Math.max(1, -parseFloat(getComputedStyle(element).marginTop));
+}
+
 export default function Mindset({ staticMotion, scene }: { staticMotion: boolean; scene: RefObject<SceneState> }) {
   const host = useRef<HTMLElement>(null);
+  const activeBeat = useRef(0);
   const [active, setActive] = useState(0);
+  const setBeat = useCallback((index: number) => {
+    if (index === activeBeat.current) return;
+    activeBeat.current = index;
+    setActive(index);
+  }, []);
+
   useEffect(() => {
     const element = host.current;
     if (!element) return;
     const studio = element.querySelector<HTMLElement>(".mindset-studio")!;
     const rigs = Array.from(studio.querySelectorAll<HTMLElement>(".demo-rig"));
-    const fit = () => rigs.forEach(rig => {
-      const caption = rig.previousElementSibling as HTMLElement | null;
-      const space = studio.clientHeight - (caption?.offsetHeight ?? 0) - 30;
-      rig.style.setProperty("--mindset-demo-fit", String(Math.min(.7, Math.max(.2, space / Math.max(1, rig.offsetHeight)))));
-    });
+    const scales = new Map<HTMLElement, number>();
+    const fit = () => {
+      const height = studio.clientHeight;
+      if (!height) return;
+
+      const measurements = rigs.map(rig => {
+        const caption = rig.previousElementSibling as HTMLElement | null;
+        const space = height - (caption?.offsetHeight ?? 0) - 30;
+        const scale = Math.min(.7, Math.max(.2, space / Math.max(1, rig.offsetHeight)));
+        return { rig, scale };
+      });
+      for (const { rig, scale } of measurements) {
+        if (scales.get(rig) === scale) continue;
+        scales.set(rig, scale);
+        rig.style.setProperty("--mindset-demo-fit", String(scale));
+      }
+    };
     const observer = new ResizeObserver(fit);
     [studio, ...rigs].forEach(item => observer.observe(item));
     fit();
@@ -37,7 +67,7 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
     if (!element || staticMotion) return;
     gsap.registerPlugin(ScrollTrigger);
     const media = gsap.matchMedia();
-    media.add({ phone: "(max-width:600px)", staged: "(min-width: 901px), (min-height: 600px), (max-width:600px) and (min-height:500px)" }, mediaContext => {
+    media.add({ phone: phoneQuery, staged: stagedQuery }, mediaContext => {
       if (!mediaContext.conditions?.staged) return;
       const phone = !!mediaContext.conditions?.phone;
       const panels = element.querySelectorAll<HTMLElement>(phone ? ".phone-mindset-beat" : ".mindset-beat");
@@ -50,47 +80,98 @@ export default function Mindset({ staticMotion, scene }: { staticMotion: boolean
           .set(".mindset-shell", { opacity: 1 }, 0)
           .set(".mindset-shell", { y: 0 }, 0)
           .to({}, { duration: 1 }, 0);
-        const story = gsap.timeline({ onUpdate: () => { scene.current.mindsetProgress=story.progress(); setActive(Math.min(2, Math.floor(story.progress() * 3))); } });
-        panels.forEach((panel, i) => {
-          if (i) story.fromTo(panel, { y: 65, opacity: 0 }, { y: 0, opacity: 1, duration: 0.12 }, i / 3);
-          if (i < 2) story.to(panel, { y: -55, opacity: 0, duration: 0.1 }, (i + 1) / 3 - 0.1);
+        const story = gsap.timeline({
+          onUpdate: () => {
+            const progress = story.progress();
+            scene.current.mindsetProgress = progress;
+            setBeat(Math.min(beats.length - 1, Math.floor(progress * beats.length)));
+          },
         });
-        element.querySelectorAll<HTMLElement>(phone ? ".phone-mindset-visual" : ".mindset-plate").forEach((plate, i) => {
-          if (i) story.fromTo(plate, phone ? { z: -60, x: 0, y: 28, rotateY: 0, opacity: 0 } : { z: -650, x: 100, rotateY: -12, opacity: 0 }, phone ? { z: 0, x: 0, y: 0, rotateY: 0, opacity: 1, duration: 0.16, ease: "power2.inOut" } : { z: 0, x: 0, rotateY: -5, opacity: 1, duration: 0.2, ease: "power2.inOut" }, i / 3 - 0.06);
-          if (i < 2) story.to(plate, phone ? { z: 30, x: 0, y: -28, rotateY: 0, opacity: 0, duration: 0.14, ease: "power2.inOut" } : { z: 350, x: -100, rotateY: 8, opacity: 0, duration: 0.2, ease: "power2.inOut" }, (i + 1) / 3 - 0.15);
-        });
+        const blend = phone ? .15 : .18;
+        const travel = phone ? 16 : 30;
+        addBeatCrossfade(story, panels, {
+          enter: { y: travel, autoAlpha: 0 },
+          rest: { y: 0, autoAlpha: 1 },
+          exit: { y: -travel, autoAlpha: 0 },
+        }, blend);
+        const selector = phone ? ".orbital-evidence > *" : ".mindset-plate";
+        const visuals = element.querySelectorAll<HTMLElement>(selector);
+        story.set(visuals[0], { opacity: 1 }, 0);
+        addBeatCrossfade(story, visuals, phone ? {
+          enter: { y: 10, opacity: 0 },
+          rest: { y: 0, opacity: 1 },
+          exit: { y: -10, opacity: 0 },
+        } : {
+          enter: { z: -250, x: 55, rotateY: -10, opacity: 0 },
+          rest: { z: 0, x: 0, rotateY: -5, opacity: 1 },
+          exit: { z: 150, x: -55, rotateY: 5, opacity: 0 },
+        }, blend);
+        if (phone) {
+          addBeatCrossfade(story, element.querySelectorAll<HTMLElement>(".orbital-caption > span"), {
+            enter: { y: 5, opacity: 0 },
+            rest: { y: 0, opacity: 1 },
+            exit: { y: -5, opacity: 0 },
+          }, blend);
+        }
         story.to(".mindset-progress-fill", { scaleX: 1, duration: 1, ease: "none" }, 0);
         // Arrival, form and copy share one scrubbed playhead, including when
         // rapidly reversing across the section boundary.
-        const storyDuration = () => Math.max(.1, element.offsetHeight / innerHeight - 2);
+        const storyDuration = () => Math.max(.1, element.offsetHeight / getArrivalDistance(element) - 2);
         arrival.duration(1);
-        story.duration(storyDuration());
+        let duration = storyDuration();
+        story.duration(duration);
         gsap.timeline({ scrollTrigger: {
-          trigger: element, start: "top top", end: "bottom bottom", scrub: .5,
-          invalidateOnRefresh: true,
-          onRefreshInit: () => { story.duration(storyDuration()); },
+          trigger: element, start: "top top", end: () => `bottom top+=${getArrivalDistance(element)}`, scrub: .24,
+          onRefreshInit: () => {
+            const nextDuration = storyDuration();
+            if (nextDuration === duration) return;
+            duration = nextDuration;
+            story.duration(duration);
+          },
         } }).add(arrival, 0).add(story, 1);
-        gsap.fromTo(".work-index", { clipPath: "inset(0 12% 0 12% round 24px)" }, { clipPath: "inset(0 0% 0 0% round 0px)", ease: "none", scrollTrigger: { trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: 0.5 } });
-        gsap.fromTo(".work-index .index-heading", { y: 90 }, { y: 0, scrollTrigger: { trigger: ".work-index", start: "top bottom", end: "top 20%", scrub: 0.5 } });
-        gsap.fromTo(".index-item", { y: 60, opacity: 0.2 }, { y: 0, opacity: 1, stagger: 0.08, scrollTrigger: { trigger: ".project-index-list", start: "top 95%", end: "top 40%", scrub: 0.4 } });
+        const work = gsap.timeline({ scrollTrigger: {
+          trigger: ".work-index", start: "top 95%", end: "top 10%", scrub: .24,
+        } });
+        const inset = phone ? "4%" : "10%";
+        work.fromTo(".work-index", { clipPath: `inset(0 ${inset} 0 ${inset} round 20px)` },
+          { clipPath: "inset(0 0% 0 0% round 0px)", duration: 1, ease: "sine.out" }, 0)
+          .fromTo(".work-index .index-heading", { y: phone ? 22 : 42 },
+            { y: 0, duration: 1, ease: "sine.out" }, 0);
+        gsap.utils.toArray<HTMLElement>(".index-item", element.parentElement!).forEach(row => {
+          gsap.fromTo(row, { y: phone ? 14 : 26, opacity: .6 }, {
+            y: 0, opacity: 1, ease: "sine.out",
+            scrollTrigger: { trigger: row, start: "top 95%", end: "top 72%", scrub: .24 },
+          });
+        });
       }, element.parentElement!);
       return () => context.revert();
     });
-    media.add("(min-width:601px) and (max-width: 900px) and (max-height: 599px), (max-width:600px) and (max-height:499px)", () => {
-      const trigger = ScrollTrigger.create({ trigger: element, start: "top 20%", end: "bottom bottom", onUpdate: self => { setActive(Math.min(2, Math.floor(self.progress * 3))); } });
-      return () => trigger.kill();
+    media.add(stackedQuery, () => {
+      // Stacked chapters use the headings' positions instead of the overall
+      // progress, which also includes the art and navigation after the copy.
+      const panels = element.querySelectorAll(matchMedia(phoneQuery).matches ? ".phone-mindset-beat" : ".mindset-beat");
+      panels.forEach((panel, i) => {
+        ScrollTrigger.create({ trigger: panel, start: "top center", end: "bottom center", onEnter: () => setBeat(i), onEnterBack: () => setBeat(i) });
+      });
     });
     return () => media.revert();
-  }, [staticMotion, scene]);
+  }, [staticMotion, scene, setBeat]);
   const jump = (index: number) => {
     const el = host.current;
     if (!el) return;
-    const pinned = !staticMotion && matchMedia("(min-width: 901px), (min-height: 600px), (max-width:600px) and (min-height:500px)").matches;
-    if (!pinned) setActive(index);
-    const target = pinned ? el : el.querySelectorAll<HTMLElement>(".mindset-beat")[index];
-    if (!target) return;
-    const offset = pinned ? innerHeight + (el.offsetHeight - innerHeight * 2) * ((index + 0.4) / 3) : -100;
-    window.scrollTo({ top: target.getBoundingClientRect().top + scrollY + offset, behavior: staticMotion ? "instant" : "smooth" });
+    if (staticMotion || !matchMedia(stagedQuery).matches) {
+      const selector = matchMedia(phoneQuery).matches ? ".phone-mindset-beat" : ".mindset-beat";
+      const target = el.querySelectorAll<HTMLElement>(selector)[index];
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        scrollStoryTo(scrollY + rect.top + (rect.height - innerHeight) / 2, staticMotion);
+      }
+      setBeat(index);
+      return;
+    }
+    const arrival = getArrivalDistance(el);
+    const travel = Math.max(0, el.offsetHeight - arrival * 2);
+    scrollStoryTo(el.getBoundingClientRect().top + scrollY + arrival + travel * ((index + .5) / beats.length));
   };
   return <section ref={host} id="about" className={`mindset-chapter ${staticMotion ? "mindset-static" : ""}`} data-chapter="1" aria-label="The mindset">
     <div className="mindset-sticky">

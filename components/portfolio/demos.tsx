@@ -1,8 +1,26 @@
 "use client";
 import "./demo-detail.css";
-import { useState } from "react";
+import { StoryLabel } from "./story-label";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Fingerprint, Layers, LockKeyhole, Mic, Captions, ScanFace, RotateCcw, ScanLine, Sparkles, Upload, Wallet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+function useDemoVisibility() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const demo = ref.current;
+    if (!demo) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      demo.toggleAttribute("data-demo-visible", entry.isIntersecting);
+    });
+    observer.observe(demo);
+    return () => observer.disconnect();
+  }, []);
+
+  return ref;
+}
 
 function Waveform({ variant = 0 }: { variant?: number }) {
   return <div className="waveform" aria-hidden="true">{Array.from({ length: 43 }, (_, i) => <i key={i} style={{ height: `${Math.round(10 + Math.abs(Math.sin(i * 0.8 + variant) * Math.cos(i * 0.27)) * 90)}%`, animationDelay: `${(i * -0.067).toFixed(3)}s` }} />)}</div>;
@@ -16,10 +34,11 @@ const journalSignals = [
 
 export function SolenneDemo({ step }: { step: number }) {
   const [signal, setSignal] = useState("voice");
+  const demoRef = useDemoVisibility();
   const SignalIcon = journalSignals.find(item => item.id === signal)?.icon ?? Mic;
-  return <div className="demo-rig solenne-rig" data-step={step}>
-    <div className="float-chip chip-one"><span className="tiny-dot" />{step === 0 ? "A PRIVATE MOMENT" : step === 1 ? "SIGNALS, CONNECTED" : "READY TO REFLECT"}</div>
-    <div className="app-window solenne-window"><div className="app-top"><span className="solenne-brand">solenne<span>✳</span></span><span className="app-avatar">R</span></div><div className="app-body"><span className="micro">YOUR DAILY SPACE</span><h4>{step === 0 ? <>Some things are<br />better said.</> : step === 1 ? <>A little more<br />understanding.</> : <>A moment.<br />A new perspective.</>}</h4><div className="journal-visual"><span className="journal-orbit orbit-one"/><span className="journal-orbit orbit-two"/><span className="journal-orbit orbit-three"/><div className="journal-core"><SignalIcon size={26}/></div><span className="journal-time">{step === 0 ? "YOUR STORY STARTS HERE" : step === 1 ? "FINDING THE SIGNAL" : "REFLECTION, DELIVERED"}</span></div><Tabs value={signal} onValueChange={setSignal} className="signal-tabs">
+  return <div ref={demoRef} className="demo-rig solenne-rig" data-step={step}>
+    <div className="float-chip chip-one"><span className="tiny-dot" /><StoryLabel values={["A PRIVATE MOMENT", "SIGNALS, CONNECTED", "READY TO REFLECT"]} step={step}/></div>
+    <div className="app-window solenne-window"><div className="app-top"><span className="solenne-brand">solenne<span>✳</span></span><span className="app-avatar">R</span></div><div className="app-body"><span className="micro">YOUR DAILY SPACE</span><h4><StoryLabel values={[<>Some things are<br/>better said.</>, <>A little more<br/>understanding.</>, <>A moment.<br/>A new perspective.</>]} step={step}/></h4><div className="journal-visual"><span className="journal-orbit orbit-one"/><span className="journal-orbit orbit-two"/><span className="journal-orbit orbit-three"/><div className="journal-core"><SignalIcon size={26}/></div><span className="journal-time"><StoryLabel values={["YOUR STORY STARTS HERE", "FINDING THE SIGNAL", "REFLECTION, DELIVERED"]} step={step}/></span></div><Tabs value={signal} onValueChange={setSignal} className="signal-tabs">
       <TabsList aria-label="Explore Solenne signals">
         {journalSignals.map(item => <TabsTrigger key={item.id} value={item.id}>{item.label}</TabsTrigger>)}
       </TabsList>
@@ -33,14 +52,14 @@ export function SolenneDemo({ step }: { step: number }) {
         </div>
         <p className="signal-explanation">{item.description}</p>
       </TabsContent>)}
-    </Tabs><div className="app-action"><span>{step === 2 ? "Reflection ready" : step === 1 ? "Analysis pipeline" : "Video journal"}</span>{step === 2 && <Check size={17}/>}</div></div><div className="app-bottom"><LockKeyhole size={11}/> NON-CLINICAL REFLECTION PROTOTYPE</div></div>
-    <div className="floating-panel solenne-insight"><Sparkles size={18}/><span className="micro">{step === 2 ? "REFLECTION PROMPT" : "ONE CONNECTED PIPELINE"}</span><p>{step === 2 ? "What made you pause today?" : "Speech + voice + visual signals"}</p><div className="panel-line"/><span>{step === 2 ? "A gentle invitation to look inward." : "Processed in a background worker."}</span></div>
+    </Tabs><div className="app-action"><span><StoryLabel values={["Video journal", "Analysis pipeline", "Reflection ready"]} step={step}/></span><StoryLabel values={[null, null, <Check size={17}/>]} step={step}/></div></div><div className="app-bottom"><LockKeyhole size={11}/> NON-CLINICAL REFLECTION PROTOTYPE</div></div>
+    <div className="floating-panel solenne-insight"><Sparkles size={18}/><span className="micro"><StoryLabel values={["ONE CONNECTED PIPELINE", "ONE CONNECTED PIPELINE", "REFLECTION PROMPT"]} step={step}/></span><p><StoryLabel values={["Speech + voice + visual signals", "Speech + voice + visual signals", "What made you pause today?"]} step={step}/></p><div className="panel-line"/><span><StoryLabel values={["Processed in a background worker.", "Processed in a background worker.", "A gentle invitation to look inward."]} step={step}/></span></div>
   </div>;
 }
 
 export function CortexDemo({ step }: { step: number }) {
   const [checked, setChecked] = useState(false);
-  return <div className="demo-rig cortex-rig" data-step={step}><div className="float-chip chip-one"><span className="tiny-dot"/>CLASSROOM → CLARITY</div><div className="app-window cortex-window"><div className="app-top"><span className="cortex-brand"><Layers size={21}/> CortexEdu</span><span className="app-avatar">RC</span></div><div className="app-body"><span className="micro">ILLUSTRATIVE STUDENT VIEW</span><h4>A good day<br />to learn something.</h4><div className="class-banner"><span className="micro">YOUR CLASSROOM</span><h5>Software Engineering</h5><span>Interactive class · Faculty & students</span><div className="avatar-stack"><b>R</b><b>A</b><b>S</b><b>J</b></div></div><div className="class-panels"><div className="attendance-panel"><ScanLine size={24}/><span>Class check-in</span><strong role="status">{checked ? "You're checked in" : "Ready when you are"}</strong><button onClick={() => setChecked(!checked)}>{checked ? "Reset demo" : "Try check-in"}{checked ? <Check size={14}/> : <ChevronRight size={14}/>}</button></div><div className="assessment-panel"><span className="micro">ASSESSMENT FLOW</span><div className="assessment-steps"><span className={step >= 0 ? "done" : ""}>Classwork</span><i/><span className={step >= 1 ? "done" : ""}>Calculate</span><i/><span className={step >= 2 ? "done" : ""}>Review</span></div></div></div><div className="reward-row"><span className="reward-icon">✳</span><div><strong>{step === 2 || checked ? "Participation recognized" : "Every contribution matters"}</strong><span>Student token reward system</span></div></div></div></div><div className="floating-panel cortex-float"><span className="micro">LESS REPETITION</span><strong>More room<br />for learning.</strong><span>Classes. Attendance. Assessment.</span></div></div>;
+  return <div className="demo-rig cortex-rig" data-step={step}><div className="float-chip chip-one"><span className="tiny-dot"/>CLASSROOM → CLARITY</div><div className="app-window cortex-window"><div className="app-top"><span className="cortex-brand"><Layers size={21}/> CortexEdu</span><span className="app-avatar">RC</span></div><div className="app-body"><span className="micro">ILLUSTRATIVE STUDENT VIEW</span><h4>A good day<br />to learn something.</h4><div className="class-banner"><span className="micro">YOUR CLASSROOM</span><h5>Software Engineering</h5><span>Interactive class · Faculty & students</span><div className="avatar-stack"><b>R</b><b>A</b><b>S</b><b>J</b></div></div><div className="class-panels"><div className="attendance-panel"><ScanLine size={24}/><span>Class check-in</span><strong role="status">{checked ? "You're checked in" : "Ready when you are"}</strong><button onClick={() => setChecked(!checked)}>{checked ? "Reset demo" : "Try check-in"}{checked ? <Check size={14}/> : <ChevronRight size={14}/>}</button></div><div className="assessment-panel"><span className="micro">ASSESSMENT FLOW</span><div className="assessment-steps"><span className={step >= 0 ? "done" : ""}>Classwork</span><i/><span className={step >= 1 ? "done" : ""}>Calculate</span><i/><span className={step >= 2 ? "done" : ""}>Review</span></div></div></div><div className="reward-row"><span className="reward-icon">✳</span><div><strong><StoryLabel values={[checked ? "Participation recognized" : "Every contribution matters", checked ? "Participation recognized" : "Every contribution matters", "Participation recognized"]} step={step}/></strong><span>Student token reward system</span></div></div></div></div><div className="floating-panel cortex-float"><span className="micro">LESS REPETITION</span><strong>More room<br />for learning.</strong><span>Classes. Attendance. Assessment.</span></div></div>;
 }
 
 export function DoChainDemo({ step }: { step: number }) {
@@ -60,17 +79,18 @@ export function DoChainDemo({ step }: { step: number }) {
     <button className="demo-primary" onClick={() => setTrial(previous => (previous + 1) % actions.length)}>
       {actions[trial]}{trial === 3 ? <RotateCcw size={15}/> : <ChevronRight size={15}/>}
     </button>
-    <p role="status" className="demo-disclaimer">{feedback[trial]}</p></div></div><div className="floating-panel chain-receipt"><span className="micro">{step === 2 ? "TRANSACTION FLOW" : "SEPARATION OF CONCERNS"}</span><div><span>Identity</span><strong>MetaMask</strong></div><div><span>File storage</span><strong>IPFS / Pinata</strong></div><div><span>Transaction</span><strong>Solidity</strong></div><p><Check size={13}/>{step === 2 ? "Conceptual flow complete" : "Files off-chain. Logic on-chain."}</p></div></div>;
+    <p role="status" className="demo-disclaimer">{feedback[trial]}</p></div></div><div className="floating-panel chain-receipt"><span className="micro"><StoryLabel values={["SEPARATION OF CONCERNS", "SEPARATION OF CONCERNS", "TRANSACTION FLOW"]} step={step}/></span><div><span>Identity</span><strong>MetaMask</strong></div><div><span>File storage</span><strong>IPFS / Pinata</strong></div><div><span>Transaction</span><strong>Solidity</strong></div><p><Check size={13}/><StoryLabel values={["Files off-chain. Logic on-chain.", "Files off-chain. Logic on-chain.", "Conceptual flow complete"]} step={step}/></p></div></div>;
 }
 
 export function FitnessDemo({ step }: { step: number }) {
   const [goal, setGoal] = useState("strength");
+  const demoRef = useDemoVisibility();
   const plans = [
     { id: "strength", label: "Strength", title: "STRONGER.", lead: "BUILD", sessions: ["Movement preparation", "Strength practice", "Recovery"] },
     { id: "endurance", label: "Endurance", title: "FURTHER.", lead: "GO", sessions: ["Warm-up", "Steady movement", "Cool-down"] },
     { id: "balance", label: "Balance", title: "BALANCE.", lead: "FIND", sessions: ["Mobility", "Balance practice", "Recovery"] },
   ];
-  return <div className="demo-rig fitness-rig" data-step={step}><div className="float-chip chip-one"><span className="tiny-dot"/>A PLAN THAT STARTS WITH YOU</div><div className="app-window fitness-window"><div className="app-top"><span className="fitness-brand">AI<span>FITNESS</span></span><Sparkles size={20}/></div><div className="app-body"><span className="micro">PERSONALIZED BY DESIGN</span><h4>Your starting point.<br />Your next step.</h4><Tabs value={goal} onValueChange={setGoal} className="goal-tabs">
+  return <div ref={demoRef} className="demo-rig fitness-rig" data-step={step}><div className="float-chip chip-one"><span className="tiny-dot"/>A PLAN THAT STARTS WITH YOU</div><div className="app-window fitness-window"><div className="app-top"><span className="fitness-brand">AI<span>FITNESS</span></span><Sparkles size={20}/></div><div className="app-body"><span className="micro">PERSONALIZED BY DESIGN</span><h4>Your starting point.<br />Your next step.</h4><Tabs value={goal} onValueChange={setGoal} className="goal-tabs">
       <TabsList aria-label="Preview a fitness goal">{plans.map(plan =>
         <TabsTrigger key={plan.id} value={plan.id}>{plan.label}</TabsTrigger>)}</TabsList>
       {plans.map((plan, i) => <TabsContent key={plan.id} value={plan.id}>
